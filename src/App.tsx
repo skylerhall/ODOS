@@ -13,31 +13,35 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tankEighths } from './core/fuel';
-import { bodyStyle } from './core/vehicles/body';
 import { MI } from './core/geo';
 import { speedLimitAt } from './core/route';
 import { formatCoords } from './core/share';
+import { bodyStyle } from './core/vehicles/body';
 import { hasToken } from './services/mapbox';
 import { load, save } from './services/storage';
 import { useOdos } from './state/useOdos';
 import { useTrail } from './state/useTrail';
 import { useWeather } from './state/useWeather';
-import { ActionTile, BigButton, Icon, IconButton, PressScale, Rail, RoundToggle, ThemeContext, useTheme } from './ui/controls';
+import { ActionTile, BigButton, Icon, IconButton, PressScale, ThemeContext } from './ui/controls';
 import { clockIn, duration, miles } from './ui/format';
 import { FuelPanel } from './ui/FuelPanel';
 import { ManeuverBanner } from './ui/ManeuverBanner';
-import { Speedometer } from './ui/Speedometer';
-import { TrailCard } from './ui/TrailCard';
 import { MapPane } from './ui/MapPane';
+import { MapToggles } from './ui/MapToggles';
 import { PanelHandle } from './ui/PanelHandle';
+import { RecenterButton } from './ui/RecenterButton';
 import { DestinationSheet } from './ui/sheets/DestinationSheet';
+import { FuelSheet } from './ui/sheets/FuelSheet';
 import { GasSheet } from './ui/sheets/GasSheet';
 import { RestSheet, type RestFrom } from './ui/sheets/RestSheet';
 import { TrailSheet } from './ui/sheets/TrailSheet';
 import { TripSheet } from './ui/sheets/TripSheet';
-import { FuelSheet } from './ui/sheets/FuelSheet';
 import { VehicleSheet } from './ui/sheets/VehicleSheet';
 import { WeatherSheet } from './ui/sheets/WeatherSheet';
+import { Speedometer } from './ui/Speedometer';
+import { ToastBar } from './ui/ToastBar';
+import { TrailCard } from './ui/TrailCard';
+import { TripBar } from './ui/TripBar';
 import { WeatherChip } from './ui/WeatherChip';
 import { WeatherOverlay } from './ui/WeatherOverlay';
 import { DAY, elevate, font, NIGHT, NUMERIC, RADIUS } from './ui/theme';
@@ -45,8 +49,6 @@ import { DAY, elevate, font, NIGHT, NUMERIC, RADIUS } from './ui/theme';
 // Keep the dark logo splash up until saved settings and fonts are loaded, then fade it out.
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ fade: true, duration: 300 });
-
-const RECENTER_SIZE = 58;
 
 type SheetName = 'dest' | 'vehicle' | 'fuel' | 'fuelAsk' | 'rest' | 'gas' | 'trip' | 'weather' | 'trail' | null;
 
@@ -79,7 +81,7 @@ function Main() {
   const insets = useSafeAreaInsets();
   const [sheet, setSheet] = useState<SheetName>(null);
   const [follow, setFollow] = useState(true);
-  // Minimized: the bottom panel shrinks to one slim bar and the side toggles hide, for more map.
+  // Minimized: the bottom panel shrinks to one slim bar, for more map. Remembered between launches.
   const [minimized, setMinimizedState] = useState(false);
   useEffect(() => {
     load<boolean>('panelMinimized', false).then(setMinimizedState);
@@ -88,7 +90,7 @@ function Main() {
     setMinimizedState(min);
     save('panelMinimized', min);
   }, []);
-  // The side toggles can be tucked away into a small tab; remembered like the panel.
+  // The map toggles can be tucked away into a small tab; remembered like the panel.
   const [railHidden, setRailHiddenState] = useState(false);
   useEffect(() => {
     load<boolean>('railHidden', false).then(setRailHiddenState);
@@ -119,13 +121,13 @@ function Main() {
   // First run: ask for the vehicle so fuel tracking works from the first mile.
   const [firstRunDone, setFirstRunDone] = useState(false);
   const openSheet: SheetName = sheet ?? (odos.loaded && !odos.vehicle && !firstRunDone ? 'vehicle' : null);
+  // The "Where to?" sheet was opened from the trip bar: a change to the route while driving.
+  const [quickChange, setQuickChange] = useState(false);
   const closeSheet = () => {
     setSheet(null);
     setQuickChange(false);
     setFirstRunDone(true);
   };
-  // The "Where to?" sheet was opened from the trip bar: a change to the route while driving.
-  const [quickChange, setQuickChange] = useState(false);
   const [topH, setTopH] = useState(90);
   const railTop = insets.top + 8 + topH + 10;
   // Landscape (phone on its side, e.g. a dash mount): controls in a left column, map on the right.
@@ -188,15 +190,12 @@ function Main() {
       )}
     </>
   );
-  // Weather chip with the re-center button.
+  // Weather on the left; re-center on the right, centered over the toggle rail below it.
   const chipRow = (
-    <>
-      {/* Weather on the left; re-center on the right, centered over the toggle rail below it. */}
-      <View style={styles.chipRow} pointerEvents="box-none">
-        <WeatherChip wx={wx} onPress={() => setSheet('weather')} />
-        <RecenterButton following={follow} onPress={() => setFollow(true)} />
-      </View>
-    </>
+    <View style={styles.chipRow} pointerEvents="box-none">
+      <WeatherChip wx={wx} onPress={() => setSheet('weather')} />
+      <RecenterButton following={follow} onPress={() => setFollow(true)} />
+    </View>
   );
   // Trail card, location-off warning and the dropped-pin bar.
   const topExtras = (
@@ -240,48 +239,15 @@ function Main() {
       ) : null}
     </>
   );
-  // The one-tap toggles. Shown whether the panel is minimized or not; Hide tucks them into a tab.
-  const rail = railHidden ? (
-    <PressScale
-      accessibilityRole="button"
-      accessibilityLabel="Show map toggles"
-      accessibilityHint="Voice, night, traffic and tolls"
-      onPress={() => setRailHidden(false)}
-      scaleTo={0.92}
-      style={[styles.railTab, { backgroundColor: theme.bg }, elevate(theme, 2)]}
-    >
-      <Icon name="chevron-left" size={20} color={theme.muted} />
-      <Icon name="tune-variant" size={22} color={theme.brand} />
-    </PressScale>
-  ) : (
-    <Rail horizontal={landscape}>
-      <RoundToggle
-        icon={settings.voice ? 'volume-high' : 'volume-off'}
-        label="Voice"
-        on={settings.voice}
-        onPress={() => a.toggle('voice')}
-      />
-      <RoundToggle icon="weather-night" label="Night" on={settings.night} onPress={() => a.toggle('night')} />
-      <RoundToggle icon="traffic-light" label="Traffic" on={settings.traffic} onPress={() => a.toggle('traffic')} />
-      <RoundToggle
-        icon="boom-gate"
-        label={settings.avoidTolls ? 'No tolls' : 'Tolls'}
-        a11yLabel="Avoid tolls"
-        slash={settings.avoidTolls}
-        on={settings.avoidTolls}
-        onPress={a.toggleTolls}
-      />
-      <PressScale
-        accessibilityRole="button"
-        accessibilityLabel="Hide map toggles"
-        onPress={() => setRailHidden(true)}
-        scaleTo={0.9}
-        style={styles.railHide}
-      >
-        <Icon name="chevron-right" size={22} color={theme.muted} />
-        <Text style={[styles.railHideText, { color: theme.muted }]}>Hide</Text>
-      </PressScale>
-    </Rail>
+  const rail = (
+    <MapToggles
+      settings={settings}
+      onToggle={a.toggle}
+      onToggleTolls={a.toggleTolls}
+      horizontal={landscape}
+      hidden={railHidden}
+      onHiddenChange={setRailHidden}
+    />
   );
   // Trip, fuel and the action tiles.
   const panel = (
@@ -448,7 +414,11 @@ function Main() {
           </>
         ) : (
           <>
-            <View style={[styles.top, { top: insets.top + 8 }]} pointerEvents="box-none" onLayout={(e) => setTopH(e.nativeEvent.layout.height)}>
+            <View
+              style={[styles.top, { top: insets.top + 8 }]}
+              pointerEvents="box-none"
+              onLayout={(e) => setTopH(e.nativeEvent.layout.height)}
+            >
               {topMain}
               {chipRow}
               {topExtras}
@@ -468,7 +438,11 @@ function Main() {
         {odos.fix && (trip || odos.fix.mph >= 3) ? (
           // Above the Mapbox logo: bottom left in portrait, bottom right of the map in landscape.
           <View
-            style={landscape ? [styles.speedo, { bottom: insets.bottom + 44, right: insets.right + 12 }] : [styles.speedo, { bottom: panelH + 56, left: 12 }]}
+            style={
+              landscape
+                ? [styles.speedo, { bottom: insets.bottom + 44, right: insets.right + 12 }]
+                : [styles.speedo, { bottom: panelH + 56, left: 12 }]
+            }
             pointerEvents="none"
           >
             <Speedometer mph={odos.fix.mph} limit={trip && p ? speedLimitAt(trip, p.along) : null} />
@@ -568,121 +542,12 @@ function Main() {
   );
 }
 
-/**
- * Like Google Maps: a round locate button above the panel, filled in when the map has drifted off
- * your position. While navigating and off-center it becomes a labeled "Re-center" pill.
- */
-/**
- * Under the turn banner while navigating: search to add a stop or change the destination, go back to
- * the trip as planned after a quick change, and end navigation (asks for a second tap, so a bump on
- * a rough road doesn't end the trip).
- */
-function TripBar(props: { onSearch: () => void; original: { name: string } | null; onRestore: () => void; onEnd: () => void }) {
-  const t = useTheme();
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const timer = setTimeout(() => setArmed(false), 4000);
-    return () => clearTimeout(timer);
-  }, [armed]);
-  return (
-    <View style={styles.tripBar}>
-      <PressScale
-        accessibilityRole="search"
-        accessibilityLabel="Add a stop or change where you're going"
-        onPress={props.onSearch}
-        scaleTo={0.98}
-        style={[styles.tripSearch, { backgroundColor: t.bg }, elevate(t, 2)]}
-      >
-        <Icon name="magnify" size={22} color={t.brand} />
-        <Text style={[styles.tripSearchText, { color: t.muted }]} numberOfLines={1}>
-          Add a stop or reroute
-        </Text>
-      </PressScale>
-      {props.original ? (
-        <PressScale
-          accessibilityRole="button"
-          accessibilityLabel={`Back to your original trip to ${props.original.name}`}
-          onPress={props.onRestore}
-          scaleTo={0.94}
-          style={[styles.tripBtn, { backgroundColor: t.bg }, elevate(t, 2)]}
-        >
-          <Icon name="backup-restore" size={22} color={t.accent} />
-          <Text style={[styles.tripBtnText, { color: t.accent }]}>Original</Text>
-        </PressScale>
-      ) : null}
-      <PressScale
-        accessibilityRole="button"
-        accessibilityLabel={armed ? 'Tap again to end navigation' : 'End navigation'}
-        accessibilityHint={armed ? undefined : 'Tap twice to end the trip'}
-        onPress={() => {
-          if (!armed) return setArmed(true);
-          setArmed(false);
-          props.onEnd();
-        }}
-        scaleTo={0.94}
-        style={[styles.tripBtn, { backgroundColor: armed ? t.danger : t.bg }, elevate(t, 2)]}
-      >
-        <Icon name="close-octagon" size={22} color={armed ? t.onAccent : t.danger} />
-        <Text style={[styles.tripBtnText, { color: armed ? t.onAccent : t.danger }]}>{armed ? 'Tap again' : 'End'}</Text>
-      </PressScale>
-    </View>
-  );
-}
-
-/** Top right, beside the weather: white while the map follows you, filled blue once you've panned away. */
-function RecenterButton({ following, onPress }: { following: boolean; onPress: () => void }) {
-  const t = useTheme();
-  return (
-    <PressScale
-      onPress={onPress}
-      scaleTo={0.9}
-      accessibilityRole="button"
-      accessibilityLabel={following ? 'Map is centered on your location' : 'Re-center map on your location'}
-      style={[styles.recenter, { backgroundColor: following ? t.bg : t.accent }, elevate(t, 2)]}
-    >
-      <Icon name="crosshairs-gps" size={26} color={following ? t.accent : t.onAccent} />
-    </PressScale>
-  );
-}
-
-/** Short confirmations and alerts above the panel. Tap to dismiss. */
-function ToastBar({ text, tone, onDone }: { text: string; tone: 'info' | 'amber' | 'good' | 'danger'; onDone: () => void }) {
-  const t = useTheme();
-  useEffect(() => {
-    const id = setTimeout(onDone, tone === 'amber' ? 9000 : 5000);
-    return () => clearTimeout(id);
-  }, [onDone, tone]);
-  const look = {
-    info: { bg: t.banner, fg: t.onBanner, icon: 'information-outline' as const },
-    amber: { bg: t.amber, fg: t.onAmber, icon: 'alert-outline' as const },
-    good: { bg: t.good, fg: '#FFFFFF', icon: 'check-circle-outline' as const },
-    danger: { bg: t.danger, fg: '#FFFFFF', icon: 'alert-circle-outline' as const },
-  }[tone];
-  return (
-    <Pressable
-      onPress={onDone}
-      accessibilityLiveRegion="polite"
-      accessibilityRole="alert"
-      style={[styles.toast, { backgroundColor: look.bg }]}
-    >
-      <Icon name={look.icon} size={22} color={look.fg} />
-      <Text style={[styles.toastText, { color: look.fg }]}>{text}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   splash: { flex: 1, backgroundColor: '#101317' },
   top: { position: 'absolute', left: 12, right: 12 },
   searchPill: { minHeight: 60, borderRadius: RADIUS.pill, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
   searchText: { fontSize: 19, fontFamily: font('500'), marginLeft: 12, letterSpacing: -0.2 },
-  tripBar: { flexDirection: 'row', marginTop: 8, gap: 8 },
-  tripSearch: { flex: 1, minHeight: 56, borderRadius: RADIUS.pill, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
-  tripSearchText: { flex: 1, fontSize: 16, fontFamily: font('500'), marginLeft: 8 },
-  tripBtn: { width: 76, minHeight: 56, borderRadius: RADIUS.control, alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
-  tripBtnText: { fontSize: 12, fontFamily: font('700'), marginTop: 2 },
   pinBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -694,12 +559,8 @@ const styles = StyleSheet.create({
   },
   pinText: { flex: 1, fontSize: 15, fontFamily: font('500'), marginLeft: 8, ...NUMERIC },
   pinBtn: { minWidth: 64, marginLeft: 6, paddingHorizontal: 12 },
-  rail: { position: 'absolute', right: 12 },
-  railHide: { width: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  railHideText: { fontSize: 11, fontFamily: font('600') },
-  // Collapsed toggles: a small tab against the right edge, big enough to hit.
-  railTab: { flexDirection: 'row', alignItems: 'center', minHeight: 56, paddingHorizontal: 10, borderRadius: RADIUS.control },
   speedo: { position: 'absolute' },
+  rail: { position: 'absolute', right: 12 },
   side: { position: 'absolute' },
   // Takes the rest of the column below the banner; scrolls when the screen is short.
   sidePanel: { flexShrink: 1, marginTop: 8, borderRadius: RADIUS.card, overflow: 'hidden' },
@@ -733,23 +594,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  recenter: {
-    marginTop: 8,
-    // The rail below is 72 wide; this centers the button over it.
-    marginRight: (72 - RECENTER_SIZE) / 2,
-    width: RECENTER_SIZE,
-    height: RECENTER_SIZE,
-    borderRadius: RECENTER_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: RADIUS.control,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-  },
-  toastText: { flex: 1, fontSize: 16, fontFamily: font('600'), marginLeft: 10, lineHeight: 21 },
 });

@@ -463,29 +463,25 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, '');
 
 export const REGISTRY: Vehicle[] = [
-  ...ROWS.map(
-    ([make, model, engine, mpg, tank, fuel = 'gas']): Vehicle => ({
-      id: slug(`${make}-${model}-${engine}`),
-      make,
-      model,
-      engine,
-      mpg,
-      tankGal: fuel === 'ev' ? +(tank / KWH_PER_GALLON).toFixed(2) : tank,
-      fuel,
-      source: 'registry',
-    }),
-  ),
-  ...OLDER.map(
-    ([make, model, engine, years, mpg, tank, fuel = 'gas']): Vehicle => ({
-      id: slug(`${make}-${model}-${engine}-${years}`),
-      make,
-      model,
-      engine,
-      years,
-      mpg,
-      tankGal: tank,
-      fuel,
-      source: 'registry',
-    }),
-  ),
+  ...ROWS.map(([make, model, engine, mpg, tank, fuel = 'gas']): Vehicle => ({
+    id: slug(`${make}-${model}-${engine}`),
+    make,
+    model,
+    engine,
+    mpg,
+    tankGal: fuel === 'ev' ? +(tank / KWH_PER_GALLON).toFixed(2) : tank,
+    fuel,
+    source: 'registry',
+  })),
+  ...OLDER.map(([make, model, engine, years, mpg, tank, fuel = 'gas']): Vehicle => ({
+    id: slug(`${make}-${model}-${engine}-${years}`),
+    make,
+    model,
+    engine,
+    years,
+    mpg,
+    tankGal: tank,
+    fuel,
+    source: 'registry',
+  })),
 ];

@@ -27,7 +27,17 @@ const CATEGORY_WORDS: [string[], NearbyCategory][] = [
     { categories: ['gas_station'], label: 'gas stations', kind: 'gas' },
   ],
   [
-    ['ev charger', 'ev chargers', 'charger', 'chargers', 'charging station', 'charging stations', 'ev charging', 'supercharger', 'superchargers'],
+    [
+      'ev charger',
+      'ev chargers',
+      'charger',
+      'chargers',
+      'charging station',
+      'charging stations',
+      'ev charging',
+      'supercharger',
+      'superchargers',
+    ],
     { categories: ['ev_charging_station'], label: 'EV chargers', kind: 'gas' },
   ],
   [
@@ -39,7 +49,10 @@ const CATEGORY_WORDS: [string[], NearbyCategory][] = [
     { categories: ['restaurant', 'fast_food'], label: 'places to eat', kind: 'destination' },
   ],
   [['fast food', 'drive thru', 'drive through'], { categories: ['fast_food'], label: 'fast food', kind: 'destination' }],
-  [['coffee', 'coffee shop', 'coffee shops', 'cafe', 'cafes'], { categories: ['coffee', 'cafe'], label: 'coffee shops', kind: 'destination' }],
+  [
+    ['coffee', 'coffee shop', 'coffee shops', 'cafe', 'cafes'],
+    { categories: ['coffee', 'cafe'], label: 'coffee shops', kind: 'destination' },
+  ],
   [
     ['hotel', 'hotels', 'motel', 'motels', 'lodging', 'place to stay', 'somewhere to stay'],
     { categories: ['hotel', 'motel'], label: 'hotels', kind: 'hotel' },
@@ -49,7 +62,10 @@ const CATEGORY_WORDS: [string[], NearbyCategory][] = [
     { categories: ['campground', 'rv_park'], label: 'campgrounds', kind: 'camp' },
   ],
   [['rest area', 'rest areas', 'rest stop', 'rest stops'], { categories: ['rest_area'], label: 'rest areas', kind: 'destination' }],
-  [['parking', 'parking lot', 'parking lots', 'parking garage'], { categories: ['parking_lot', 'parking'], label: 'parking', kind: 'destination' }],
+  [
+    ['parking', 'parking lot', 'parking lots', 'parking garage'],
+    { categories: ['parking_lot', 'parking'], label: 'parking', kind: 'destination' },
+  ],
   [
     ['grocery', 'groceries', 'grocery store', 'grocery stores', 'supermarket', 'supermarkets'],
     { categories: ['grocery', 'supermarket'], label: 'grocery stores', kind: 'destination' },
@@ -62,11 +78,45 @@ const CATEGORY_WORDS: [string[], NearbyCategory][] = [
 const LOOKUP = new Map(CATEGORY_WORDS.flatMap(([words, cat]) => words.map((w) => [w, cat] as const)));
 
 // Longest phrases first, so "near me" goes before "near".
-const NEAREST = ['nearest', 'closest', 'nearby', 'near me', 'near here', 'around me', 'around here', 'close by', 'close to me', 'in the area', 'in this area'];
-const FILLER = ['find', 'show me', 'show', 'where is', "where's", 'where are', 'any', 'some', 'a', 'an', 'the', 'please', 'local', 'near', 'me'];
+const NEAREST = [
+  'nearest',
+  'closest',
+  'nearby',
+  'near me',
+  'near here',
+  'around me',
+  'around here',
+  'close by',
+  'close to me',
+  'in the area',
+  'in this area',
+];
+const FILLER = [
+  'find',
+  'show me',
+  'show',
+  'where is',
+  "where's",
+  'where are',
+  'any',
+  'some',
+  'a',
+  'an',
+  'the',
+  'please',
+  'local',
+  'near',
+  'me',
+];
 
 const phrase = (words: string[]) =>
-  new RegExp(`\\b(${[...words].sort((x, y) => y.length - x.length).map((w) => w.replace(/'/g, "'?")).join('|')})\\b`, 'g');
+  new RegExp(
+    `\\b(${[...words]
+      .sort((x, y) => y.length - x.length)
+      .map((w) => w.replace(/'/g, "'?"))
+      .join('|')})\\b`,
+    'g',
+  );
 const NEAREST_RE = phrase(NEAREST);
 const FILLER_RE = phrase(FILLER);
 

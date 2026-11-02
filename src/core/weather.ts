@@ -1,7 +1,7 @@
 // Weather logic: what the sky is doing, what that means for the drive, and what's coming up
 // along the route. Pure functions; data comes from services/weather.ts.
 
-import { MI, pointAt, type Line, type LngLat } from './geo';
+import { MI, MPH, pointAt, type Line, type LngLat } from './geo';
 import type { FuelKind } from './vehicles/types';
 
 export type Sky = 'clear' | 'partly' | 'cloudy' | 'fog' | 'drizzle' | 'rain' | 'heavyRain' | 'freezing' | 'snow' | 'heavySnow' | 'storm';
@@ -134,7 +134,7 @@ export type RouteSample = { coord: LngLat; aheadMeters: number; etaSeconds: numb
  * Every `everyMiles`, up to `max` points.
  */
 export function routeSamples(line: Line, alongNow: number, cruiseMph: number, everyMiles = 40, max = 8): RouteSample[] {
-  const mps = Math.max(10, cruiseMph * 0.44704);
+  const mps = Math.max(10, cruiseMph * MPH);
   const out: RouteSample[] = [];
   for (let ahead = everyMiles * MI; alongNow + ahead < line.length && out.length < max; ahead += everyMiles * MI) {
     out.push({ coord: pointAt(line, alongNow + ahead).coord, aheadMeters: ahead, etaSeconds: ahead / mps });

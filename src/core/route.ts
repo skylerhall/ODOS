@@ -1,6 +1,6 @@
 // Turns a Mapbox Directions API route into the shape the app navigates with.
 
-import { buildLine, pointAt, type Line, type LngLat } from './geo';
+import { buildLine, MPH, pointAt, type Line, type LngLat } from './geo';
 import type { LaneGuide } from './lanes';
 
 export type Maneuver = { type: string; modifier?: string; instruction: string; location: LngLat };
@@ -99,7 +99,7 @@ export function parseRoute(api: ApiRoute): Route {
     for (const c of leg.annotation?.congestion ?? []) congestion.push(LEVELS.has(c) ? (c as Congestion) : 'unknown');
     for (const m of leg.annotation?.maxspeed ?? []) speedLimits.push(toMph(m));
   }
-  const cruiseMph = api.duration > 0 ? (api.distance / api.duration) * 2.23694 : 0;
+  const cruiseMph = api.duration > 0 ? api.distance / api.duration / MPH : 0;
   const tolls = api.legs.some((leg) => leg.steps.some((s) => s.intersections?.some((i) => i.classes?.includes('toll'))));
   return { line, distance: line.length, duration: api.duration, steps, lanes, congestion, legEnds, cruiseMph, tolls, speedLimits };
 }
@@ -165,7 +165,8 @@ export function joinPieces(a: ApiRoute, b: ApiRoute): ApiRoute {
   const stepsA = [...(a.legs[0]?.steps ?? [])];
   if (stepsA.at(-1)?.maneuver.type === 'arrive') stepsA.pop();
   const tail = stepsA.at(-1);
-  if (tail) stepsA[stepsA.length - 1] = { ...tail, voiceInstructions: tail.voiceInstructions?.filter((v) => !ARRIVING.test(v.announcement)) };
+  if (tail)
+    stepsA[stepsA.length - 1] = { ...tail, voiceInstructions: tail.voiceInstructions?.filter((v) => !ARRIVING.test(v.announcement)) };
   const stepsB = (b.legs[0]?.steps ?? []).map((s, i) =>
     i === 0 && s.maneuver.type === 'depart'
       ? {

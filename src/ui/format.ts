@@ -45,16 +45,3 @@ export function maneuverGlyph(type: string, modifier?: string): IconName {
       return 'arrow-up';
   }
 }
-
-/** Icon for a lane's indications (e.g. ["straight","right"]). */
-export function laneGlyph(indications: string[]): IconName {
-  const has = (s: string) => indications.includes(s);
-  if (has('uturn')) return 'arrow-u-left-top';
-  if (has('straight') && (has('left') || has('slight left'))) return 'arrow-left-top';
-  if (has('straight') && (has('right') || has('slight right'))) return 'arrow-right-top';
-  if (has('left') || has('sharp left')) return 'arrow-left';
-  if (has('slight left')) return 'arrow-top-left';
-  if (has('right') || has('sharp right')) return 'arrow-right';
-  if (has('slight right')) return 'arrow-top-right';
-  return 'arrow-up';
-}

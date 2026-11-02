@@ -19,7 +19,3 @@ export type Vehicle = {
 
 /** EPA's energy equivalence: 33.7 kWh = 1 gallon of gasoline. */
 export const KWH_PER_GALLON = 33.7;
-
-export function vehicleLabel(v: Vehicle): string {
-  return `${v.make} ${v.model} · ${v.engine}`;
-}

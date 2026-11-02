@@ -62,7 +62,7 @@ export function burn(state: FuelState, vehicle: Vehicle, meters: number, mph: nu
  * Miles left in the tank. Pass the expected cruising speed (e.g. the route's average) for a
  * Tesla-style "range at the pace you'll actually drive" estimate instead of the EPA sticker.
  */
-export function rangeMiles(state: FuelState, vehicle: Vehicle, cruiseMph?: number, efficiency = 1): number {
+function rangeMiles(state: FuelState, vehicle: Vehicle, cruiseMph?: number, efficiency = 1): number {
   return state.gallons * vehicle.mpg * speedFactor(cruiseMph ?? 0) * efficiency;
 }
 

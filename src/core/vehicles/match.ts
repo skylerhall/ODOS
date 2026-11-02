@@ -113,5 +113,3 @@ export function closestRegistryMatch(make: string, model: string, displacementL?
   }
   return best.v;
 }
-
-export const ALL_MAKES = [...new Set(REGISTRY.map((v) => v.make))].sort();

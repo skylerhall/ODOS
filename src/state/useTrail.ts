@@ -22,17 +22,25 @@ import {
   type TrailPoi,
 } from '../core/trails';
 import { load, save } from '../services/storage';
-import { areaAt, deleteTrailArea, downloadTrailArea, listTrailAreas, loadTrailArea, type DownloadProgress, type TrailAreaInfo } from '../services/trails';
-import type { Fix } from './useOdos';
+import {
+  areaAt,
+  deleteTrailArea,
+  downloadTrailArea,
+  listTrailAreas,
+  loadTrailArea,
+  type DownloadProgress,
+  type TrailAreaInfo,
+} from '../services/trails';
+import type { Fix, Toast, TrailRouter } from './useOdos';
 
 type Actions = {
-  setTrailRouter: (r: { route: (points: Fix['coord'][]) => Route | null; burnFuel: boolean } | null) => void;
+  setTrailRouter: (r: TrailRouter | null) => void;
   subscribeFix: (cb: (f: Fix) => void) => () => void;
   followRoute: (r: Route, dest: Place) => void;
   navigateTo: (p: Place) => Promise<void>;
   endTrip: () => void;
   speak: (s: string) => void;
-  notify: (s: string, tone?: 'info' | 'amber' | 'good' | 'danger') => void;
+  notify: (s: string, tone?: Toast['tone']) => void;
 };
 
 /** Breadcrumb points with worse GPS accuracy than this are skipped (meters). */
@@ -117,7 +125,12 @@ export function useTrail(opts: { fix: Fix | null; destination: Place | null; rou
   useEffect(() => {
     if (!ahead || route) return;
     // One warning per feature: key on the rounded distance band so a new dead end warns again.
-    const key = ahead.deadEndM != null ? `dead:${Math.round(ahead.deadEndM / 500)}` : ahead.gateM != null ? `gate:${Math.round(ahead.gateM / 500)}` : '';
+    const key =
+      ahead.deadEndM != null
+        ? `dead:${Math.round(ahead.deadEndM / 500)}`
+        : ahead.gateM != null
+          ? `gate:${Math.round(ahead.gateM / 500)}`
+          : '';
     if (!key || key === warned.current) return;
     warned.current = key;
     if (ahead.deadEndM != null) live.current.a.speak(`Dead end ahead in ${spokenDistance(ahead.deadEndM)}`);
@@ -133,18 +146,15 @@ export function useTrail(opts: { fix: Fix | null; destination: Place | null; rou
   const lines = useMemo(() => (graph ? toGeoJSON(trailLines(graph)) : null), [graph]);
   const here = fix ? areaAt(areas, fix.coord) : null;
 
-  const start = useCallback(
-    async (info: TrailAreaInfo) => {
-      const loaded = await loadTrailArea(info.id);
-      if (!loaded) return live.current.a.notify('That trail area is missing. Download it again.', 'danger');
-      setArea(loaded);
-      setTrack(newTrack());
-      setActive(true);
-      live.current.a.notify(`Trail Mode on · ${live.current.mode === 'hike' ? 'on foot' : 'off-road'}. Recording your track.`, 'good');
-      live.current.a.speak('Trail Mode on. Recording your track.');
-    },
-    [],
-  );
+  const start = useCallback(async (info: TrailAreaInfo) => {
+    const loaded = await loadTrailArea(info.id);
+    if (!loaded) return live.current.a.notify('That trail area is missing. Download it again.', 'danger');
+    setArea(loaded);
+    setTrack(newTrack());
+    setActive(true);
+    live.current.a.notify(`Trail Mode on · ${live.current.mode === 'hike' ? 'on foot' : 'off-road'}. Recording your track.`, 'good');
+    live.current.a.speak('Trail Mode on. Recording your track.');
+  }, []);
 
   const stop = useCallback(() => {
     setActive(false);
@@ -161,20 +171,23 @@ export function useTrail(opts: { fix: Fix | null; destination: Place | null; rou
     replan.current = true;
   }, []);
 
-  const downloadHere = useCallback(async (radiusMi: number) => {
-    const at = opts.fix?.coord;
-    if (!at) return live.current.a.notify('Waiting for GPS to download the area around you', 'danger');
-    setDownloadError(null);
-    setDownload({ stage: 'trails', percent: 0 });
-    try {
-      const list = await downloadTrailArea(at, radiusMi, setDownload);
-      setAreas(list);
-      live.current.a.notify(`Trails saved for ${radiusMi} miles around you`, 'good');
-    } catch (e) {
-      setDownload(null);
-      setDownloadError(e instanceof Error ? e.message : String(e));
-    }
-  }, [opts.fix?.coord]);
+  const downloadHere = useCallback(
+    async (radiusMi: number) => {
+      const at = opts.fix?.coord;
+      if (!at) return live.current.a.notify('Waiting for GPS to download the area around you', 'danger');
+      setDownloadError(null);
+      setDownload({ stage: 'trails', percent: 0 });
+      try {
+        const list = await downloadTrailArea(at, radiusMi, setDownload);
+        setAreas(list);
+        live.current.a.notify(`Trails saved for ${radiusMi} miles around you`, 'good');
+      } catch (e) {
+        setDownload(null);
+        setDownloadError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [opts.fix?.coord],
+  );
 
   const remove = useCallback(async (id: string) => setAreas(await deleteTrailArea(id)), []);
 
@@ -225,7 +238,16 @@ function toGeoJSON(lines: ReturnType<typeof trailLines>): GeoJSON.FeatureCollect
     type: 'FeatureCollection',
     features: lines.map((l) => ({
       type: 'Feature',
-      properties: { kind: l.hw === 'track' ? (l.fourWd || (l.grade ?? 0) >= 4 ? 'rough' : 'track') : ['path', 'footway', 'bridleway', 'steps', 'cycleway'].includes(l.hw) ? 'path' : 'road' },
+      properties: {
+        kind:
+          l.hw === 'track'
+            ? l.fourWd || (l.grade ?? 0) >= 4
+              ? 'rough'
+              : 'track'
+            : ['path', 'footway', 'bridleway', 'steps', 'cycleway'].includes(l.hw)
+              ? 'path'
+              : 'road',
+      },
       geometry: { type: 'LineString', coordinates: l.coords },
     })),
   };

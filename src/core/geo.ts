@@ -8,7 +8,8 @@ const toRad = (d: number) => (d * Math.PI) / 180;
 const toDeg = (r: number) => (r * 180) / Math.PI;
 
 export const MI = 1609.344;
-export const metersToMiles = (m: number) => m / MI;
+/** Meters per second in one mile per hour. */
+export const MPH = 0.44704;
 export const milesToMeters = (mi: number) => mi * MI;
 
 export function haversine(a: LngLat, b: LngLat): number {

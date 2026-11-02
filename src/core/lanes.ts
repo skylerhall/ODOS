@@ -112,7 +112,7 @@ export class LaneAdvisor {
   }
 }
 
-export function laneName(i: number, count: number): string {
+function laneName(i: number, count: number): string {
   if (count === 1) return 'Only lane';
   if (i === 0) return 'Left lane';
   if (i === count - 1) return 'Right lane';

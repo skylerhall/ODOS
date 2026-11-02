@@ -3,7 +3,7 @@
 // look-ahead, and a compass to the destination. Two modes over the same data: on foot or bike
 // (paths, footways, tracks) and off-road driving (tracks and back roads, no footpaths).
 
-import { bearing, buildLine, haversine, type LngLat } from './geo';
+import { bearing, buildLine, haversine, MI, MPH, type LngLat } from './geo';
 import type { Route, Step } from './route';
 
 export type TrailMode = 'hike' | 'offroad';
@@ -75,12 +75,26 @@ out body qt;`;
 
 type OsmElement = { type: string; id: number; lat?: number; lon?: number; nodes?: number[]; tags?: Record<string, string> };
 
-const yes = (v?: string) => (v == null ? undefined : ['yes', 'designated', 'permissive', 'official'].includes(v) ? true : v === 'no' ? false : undefined);
+const yes = (v?: string) =>
+  v == null ? undefined : ['yes', 'designated', 'permissive', 'official'].includes(v) ? true : v === 'no' ? false : undefined;
 const GATES = new Set(['gate', 'lift_gate', 'swing_gate', 'sliding_gate']);
-const BARRIERS = new Set(['bollard', 'block', 'jersey_barrier', 'stile', 'kissing_gate', 'turnstile', 'log', 'chain', 'motorcycle_barrier']);
+const BARRIERS = new Set([
+  'bollard',
+  'block',
+  'jersey_barrier',
+  'stile',
+  'kissing_gate',
+  'turnstile',
+  'log',
+  'chain',
+  'motorcycle_barrier',
+]);
 
 /** Turns an Overpass response (from trailQuery) into a compact TrailArea. */
-export function parseOverpass(json: { elements: OsmElement[] }, meta: Pick<TrailArea, 'id' | 'name' | 'center' | 'radiusM' | 'createdAt'>): TrailArea {
+export function parseOverpass(
+  json: { elements: OsmElement[] },
+  meta: Pick<TrailArea, 'id' | 'name' | 'center' | 'radiusM' | 'createdAt'>,
+): TrailArea {
   const pos = new Map<number, LngLat>();
   const tagged = new Map<number, Record<string, string>>();
   const osmWays: OsmElement[] = [];
@@ -136,7 +150,12 @@ export function parseOverpass(json: { elements: OsmElement[] }, meta: Pick<Trail
   return { v: 1, ...meta, coords, ways, gates, barriers, pois };
 }
 
-const KIND_NAMES: Record<string, string> = { trailhead: 'Trailhead', viewpoint: 'Viewpoint', camp_site: 'Campsite', drinking_water: 'Water' };
+const KIND_NAMES: Record<string, string> = {
+  trailhead: 'Trailhead',
+  viewpoint: 'Viewpoint',
+  camp_site: 'Campsite',
+  drinking_water: 'Water',
+};
 
 function poiKind(t: Record<string, string>): string | null {
   if (t.highway === 'trailhead') return 'trailhead';
@@ -158,18 +177,17 @@ export type TrailGraph = {
   maxSpeed: number;
 };
 
-const MPH = 0.44704;
 const ROADS = new Set(['unclassified', 'service', 'residential', 'tertiary', 'living_street']);
 
 /** Moving speed in mph for a way in a mode, or null if the mode can't use it. */
-export function waySpeed(w: TrailWay, mode: TrailMode): number | null {
+function waySpeed(w: TrailWay, mode: TrailMode): number | null {
   if (mode === 'hike') {
     if (w.foot === false || (w.closed && w.foot !== true)) return null;
     if (ROADS.has(w.hw)) return w.hw === 'tertiary' ? 2.5 : 2.8; // allowed, but trails win (see edge cost)
     return w.hw === 'cycleway' || w.hw === 'pedestrian' ? 3 : 2.5;
   }
   if (w.motor === false || (w.closed && w.motor !== true)) return null;
-  if (w.hw === 'track') return w.fourWd ? 6 : ({ 1: 25, 2: 18, 3: 12, 4: 8, 5: 5 } as Record<number, number>)[w.grade ?? 0] ?? 10;
+  if (w.hw === 'track') return w.fourWd ? 6 : (({ 1: 25, 2: 18, 3: 12, 4: 8, 5: 5 } as Record<number, number>)[w.grade ?? 0] ?? 10);
   if (w.hw === 'path' || w.hw === 'bridleway') return w.motor ? 8 : null; // ATV/OHV trails only when tagged
   return ({ unclassified: 30, tertiary: 35, residential: 25, living_street: 10, service: 12 } as Record<string, number>)[w.hw] ?? null;
 }
@@ -201,7 +219,7 @@ export function buildGraph(area: TrailArea, mode: TrailMode): TrailGraph {
 }
 
 /** Nearest node on the network (one the mode can use) and how far away it is. */
-export function nearestNode(g: TrailGraph, p: LngLat): { node: number; meters: number } | null {
+function nearestNode(g: TrailGraph, p: LngLat): { node: number; meters: number } | null {
   const kx = Math.cos((p[1] * Math.PI) / 180);
   let best = -1;
   let bestD = Infinity;
@@ -219,12 +237,12 @@ export function nearestNode(g: TrailGraph, p: LngLat): { node: number; meters: n
 }
 
 /** Farthest you can be from the network and still be routed onto it. */
-export const MAX_SNAP_M = 400;
+const MAX_SNAP_M = 400;
 
 export type TrailPath = { nodes: number[]; ways: number[]; meters: number; seconds: number };
 
 /** Fastest path between two nodes (A*). */
-export function shortestPath(g: TrailGraph, from: number, to: number): TrailPath | null {
+function shortestPath(g: TrailGraph, from: number, to: number): TrailPath | null {
   const h = (i: number) => haversine(g.pts[i], g.pts[to]) / g.maxSpeed;
   const cost = new Map<number, number>([[from, 0]]);
   const prev = new Map<number, { node: number; edge: Edge }>();
@@ -250,7 +268,7 @@ export function shortestPath(g: TrailGraph, from: number, to: number): TrailPath
   const nodes = [to];
   const ways: number[] = [];
   let meters = 0;
-  for (let at = to; at !== from; ) {
+  for (let at = to; at !== from;) {
     const p = prev.get(at)!;
     nodes.push(p.node);
     ways.push(p.edge.way);
@@ -268,7 +286,7 @@ class MinHeap {
   push(v: number, k: number) {
     const a = this.items;
     a.push({ v, k });
-    for (let i = a.length - 1; i > 0; ) {
+    for (let i = a.length - 1; i > 0;) {
       const p = (i - 1) >> 1;
       if (a[p].k <= a[i].k) break;
       [a[p], a[i]] = [a[i], a[p]];
@@ -282,7 +300,7 @@ class MinHeap {
     const last = a.pop()!;
     if (a.length) {
       a[0] = last;
-      for (let i = 0; ; ) {
+      for (let i = 0; ;) {
         const l = 2 * i + 1;
         const r = l + 1;
         let m = i;
@@ -299,8 +317,9 @@ class MinHeap {
 
 // ── turn-by-turn ──
 
-const cardinal = (deg: number) => ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'][Math.round(((deg % 360) + 360) % 360 / 45) % 8];
-export const compassPoint = (deg: number) => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+const cardinal = (deg: number) =>
+  ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'][Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+export const compassPoint = (deg: number) => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round((((deg % 360) + 360) % 360) / 45) % 8];
 
 function turnModifier(deltaDeg: number): string | null {
   const d = ((deltaDeg + 540) % 360) - 180; // -180..180, + is right
@@ -314,14 +333,14 @@ function turnModifier(deltaDeg: number): string | null {
 
 const feet = (m: number) => {
   const ft = m * 3.28084;
-  return ft >= 1000 ? `${(m / 1609.344).toFixed(1).replace(/\.0$/, '')} miles` : `${Math.max(50, Math.round(ft / 50) * 50)} feet`;
+  return ft >= 1000 ? `${(m / MI).toFixed(1).replace(/\.0$/, '')} miles` : `${Math.max(50, Math.round(ft / 50) * 50)} feet`;
 };
 
 /**
  * Builds a Route (the shape the app already navigates with: banner, voice, off-route) from a trail
  * path, including the walk or drive from `from` onto the network and from it to `to`.
  */
-export function trailRouteToRoute(g: TrailGraph, path: TrailPath, from: LngLat, to: LngLat): Route {
+function trailRouteToRoute(g: TrailGraph, path: TrailPath, from: LngLat, to: LngLat): Route {
   const nodes = path.nodes;
   const coords: LngLat[] = [];
   if (haversine(from, g.pts[nodes[0]]) > 5) coords.push(from);
@@ -499,7 +518,14 @@ export function retraceRoute(t: Track, mode: TrailMode): Route | null {
           { at: Math.max(0, line.length - 15), text: 'You are back at the start' },
         ],
       },
-      { start: line.length, distance: 0, duration: 0, name: '', maneuver: { type: 'arrive', instruction: 'Back at the start', location: coords[coords.length - 1] }, voice: [] },
+      {
+        start: line.length,
+        distance: 0,
+        duration: 0,
+        name: '',
+        maneuver: { type: 'arrive', instruction: 'Back at the start', location: coords[coords.length - 1] },
+        voice: [],
+      },
     ],
     lanes: [],
     congestion: [],
@@ -518,5 +544,7 @@ export function compassTo(from: LngLat, to: LngLat): { bearing: number; meters: 
 
 /** The trails a mode can use, as map lines (for drawing the network). */
 export function trailLines(g: TrailGraph): { coords: LngLat[]; hw: string; grade?: number; fourWd?: boolean }[] {
-  return g.area.ways.filter((w) => waySpeed(w, g.mode) != null).map((w) => ({ coords: w.n.map((i) => g.pts[i]), hw: w.hw, grade: w.grade, fourWd: w.fourWd }));
+  return g.area.ways
+    .filter((w) => waySpeed(w, g.mode) != null)
+    .map((w) => ({ coords: w.n.map((i) => g.pts[i]), hw: w.hw, grade: w.grade, fourWd: w.fourWd }));
 }

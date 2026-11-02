@@ -1,4 +1,4 @@
-// The app's brain: location, routing, turn-by-turn, fuel, auto gas stops, lanes and persistence.
+// The app's brain: location, routing, turn-by-turn, fuel, auto gas stops and persistence.
 // Screens call the actions returned here; nothing else talks to GPS or the APIs directly.
 
 import * as Clipboard from 'expo-clipboard';
@@ -9,17 +9,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Linking, Share } from 'react-native';
 import { NAV } from '../config';
 import { burn, fullTank, gaugeLabel, outlook, tankAt, type FuelOutlook, type FuelState } from '../core/fuel';
-import { haversine, MI, pointAt, type LngLat } from '../core/geo';
-import { LaneAdvisor, type LaneAdvice, type LaneGuide } from '../core/lanes';
-import { simulateLanes } from '../core/laneSim';
+import { haversine, MI, MPH, pointAt, type LngLat } from '../core/geo';
 import { NavTracker, type Progress } from '../core/nav';
 import { insertStop, type GasPick, type Place, type RestOption, type Stop } from '../core/places';
 import type { Route } from '../core/route';
-import { formatCoords, shareMessage } from '../core/share';
-import type { Vehicle } from '../core/vehicles/types';
-import { nearbyGas, planGasStop, type GasPlan } from '../services/gas';
-import { getRoutes, hasToken } from '../services/mapbox';
-import { searchWhereTo } from '../services/placeSearch';
 import {
   addRecent,
   addShortcut as addShortcutTo,
@@ -28,11 +21,16 @@ import {
   setShortcutPlace,
   type Shortcut,
 } from '../core/saved';
+import { formatCoords, shareMessage } from '../core/share';
+import { isDark, nextLightChange } from '../core/sun';
+import type { Vehicle } from '../core/vehicles/types';
+import { nearbyGas, planGasStop, type GasPlan } from '../services/gas';
+import { getRoutes, hasToken } from '../services/mapbox';
 import { cachedRest, saveCorridor, type OfflineStatus } from '../services/offline';
+import { searchWhereTo } from '../services/placeSearch';
 import { findRest, type RestKind } from '../services/rest';
 import { load, save } from '../services/storage';
 import { clockIn, duration as fmtDuration, miles as fmtMiles } from '../ui/format';
-import { isDark, nextLightChange } from '../core/sun';
 
 export type Settings = {
   voice: boolean;
@@ -47,13 +45,8 @@ export type Settings = {
 };
 export type Fix = { coord: LngLat; heading: number | null; mph: number; accuracy: number | null; at: number };
 export type Toast = { id: number; text: string; tone: 'info' | 'amber' | 'good' | 'danger' };
-export type LaneView = {
-  count: number;
-  guides: LaneGuide[] | null;
-  inMeters: number | null;
-  advice: LaneAdvice | null;
-  simulated: boolean;
-};
+/** Set by Trail Mode: routes come from the downloaded trail network instead of Mapbox. */
+export type TrailRouter = { route: (points: LngLat[]) => Route | null; burnFuel: boolean };
 
 const DEFAULT_SETTINGS: Settings = {
   voice: true,
@@ -82,8 +75,6 @@ export function useOdos() {
   const [route, setRoute] = useState<Route | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [routing, setRouting] = useState(false);
-  const [gas, setGas] = useState<GasPlan | null>(null);
-  const [lanes, setLanes] = useState<LaneView | null>(null);
   const [offline, setOffline] = useState<OfflineStatus>({ state: 'idle', percent: 0 });
   const [toast, setToast] = useState<Toast | null>(null);
   const [pin, setPin] = useState<LngLat | null>(null);
@@ -114,7 +105,6 @@ export function useOdos() {
   const bufferHandled = useRef(false);
   const simAlong = useRef(0);
   const routeSeq = useRef(0);
-  const advisor = useRef(new LaneAdvisor());
   const rerouting = useRef(false);
 
   // ── feedback ──
@@ -167,7 +157,7 @@ export function useOdos() {
   // ── Trail Mode hooks (see state/useTrail.ts) ──
   // While set, routes come from the downloaded trail network instead of Mapbox, and walking doesn't
   // burn the vehicle's fuel.
-  const trailRouter = useRef<{ route: (points: LngLat[]) => Route | null; burnFuel: boolean } | null>(null);
+  const trailRouter = useRef<TrailRouter | null>(null);
   const fixListeners = useRef(new Set<(f: Fix) => void>());
 
   // ── routing ──
@@ -208,7 +198,8 @@ export function useOdos() {
         // Always answer a new trip or a flipped toggle; on automatic reroutes, say it once, not on
         // every reroute along the same toll road.
         const asked = next.dest !== undefined || next.avoidTolls !== undefined;
-        if (avoidTolls && r.tolls && (asked || !live.current.route?.tolls)) notify('No toll-free route here, so this route uses tolls', 'danger');
+        if (avoidTolls && r.tolls && (asked || !live.current.route?.tolls))
+          notify('No toll-free route here, so this route uses tolls', 'danger');
         tracker.current = new NavTracker(r);
         simAlong.current = 0;
         setRoute(r);
@@ -237,7 +228,6 @@ export function useOdos() {
       if (place.kind !== 'custom') setRecents((r) => addRecent(r, place));
       setDestination(place);
       setStops([]);
-      setGas(null);
       setPin(null);
       const r = await reroute({ dest: place, stops: [] });
       if (!r) return;
@@ -255,8 +245,6 @@ export function useOdos() {
     setStops([]);
     setRoute(null);
     setProgress(null);
-    setLanes(null);
-    setGas(null);
     setRouting(false);
   }, []);
 
@@ -274,7 +262,6 @@ export function useOdos() {
     setOriginal(null);
     setDestination(o.destination);
     setStops(o.stops);
-    setGas(null);
     bufferHandled.current = false; // the fuel monitor re-plans a gas stop if one is due
     notify(`Back to your trip to ${o.destination.name}`, 'good');
     const r = await reroute({ dest: o.destination, stops: o.stops });
@@ -324,6 +311,14 @@ export function useOdos() {
     [notify],
   );
 
+  /** After a fill-up or a new tank level, the auto gas stop planned for the old level no longer applies. */
+  const dropAutoStops = useCallback(async () => {
+    const kept = live.current.stops.filter((s) => !s.auto);
+    if (kept.length === live.current.stops.length) return;
+    setStops(kept);
+    await reroute({ stops: kept });
+  }, [reroute]);
+
   const fillUp = useCallback(async () => {
     const v = live.current.vehicle;
     if (!v) return;
@@ -331,17 +326,12 @@ export function useOdos() {
     const full = fullTank(v);
     setFuel(full);
     bufferHandled.current = false;
-    setGas(null);
     const o = outlook(full, v, { cruiseMph: live.current.route?.cruiseMph, efficiency: live.current.efficiency });
     const msg = `Full tank. ${fmtMiles(o.rangeMi)} of range. Next fuel alert in ${fmtMiles(o.untilAlertMi)}.`;
     notify(msg, 'good');
     speak(msg);
-    const kept = live.current.stops.filter((s) => !s.auto);
-    if (kept.length !== live.current.stops.length) {
-      setStops(kept);
-      await reroute({ stops: kept });
-    }
-  }, [notify, reroute, speak]);
+    await dropAutoStops();
+  }, [dropAutoStops, notify, speak]);
 
   // Set the tank by hand (e.g. starting on half a tank). Like "Filled up", it drops any auto gas stop
   // planned for the old level; if the new level is low, the fuel monitor plans a fresh one.
@@ -353,16 +343,14 @@ export function useOdos() {
       const next = tankAt(v, eighths);
       setFuel(next);
       bufferHandled.current = false;
-      setGas(null);
       const o = outlook(next, v, { cruiseMph: live.current.route?.cruiseMph, efficiency: live.current.efficiency });
-      notify(`${v.fuel === 'ev' ? 'Battery' : 'Tank'} set to ${gaugeLabel(eighths, v.fuel === 'ev')}. ${fmtMiles(o.rangeMi)} of range.`, 'good');
-      const kept = live.current.stops.filter((s) => !s.auto);
-      if (kept.length !== live.current.stops.length) {
-        setStops(kept);
-        await reroute({ stops: kept });
-      }
+      notify(
+        `${v.fuel === 'ev' ? 'Battery' : 'Tank'} set to ${gaugeLabel(eighths, v.fuel === 'ev')}. ${fmtMiles(o.rangeMi)} of range.`,
+        'good',
+      );
+      await dropAutoStops();
     },
-    [notify, reroute],
+    [dropAutoStops, notify],
   );
 
   /** Range for a tank level, for the slider's live preview. */
@@ -395,7 +383,7 @@ export function useOdos() {
   const clearRecents = useCallback(() => setRecents([]), []);
 
   /** Trail Mode turns trail routing on (or off with null). */
-  const setTrailRouter = useCallback((r: { route: (points: LngLat[]) => Route | null; burnFuel: boolean } | null) => {
+  const setTrailRouter = useCallback((r: TrailRouter | null) => {
     trailRouter.current = r;
   }, []);
   /** Get every GPS fix (the breadcrumb track). Returns the unsubscribe function. */
@@ -434,11 +422,7 @@ export function useOdos() {
   const findGas = useCallback(async (): Promise<GasPlan | null> => {
     const { vehicle: v, fuel: f, route: r, progress: p, fix: here } = live.current;
     const rangeMi = v && f ? outlook(f, v, { cruiseMph: r?.cruiseMph, efficiency: live.current.efficiency }).rangeMi : 60;
-    if (r) {
-      const plan = await planGasStop(r, p?.along ?? 0, rangeMi);
-      setGas(plan);
-      return plan;
-    }
+    if (r) return planGasStop(r, p?.along ?? 0, rangeMi);
     if (!here) return null;
     try {
       const near = await nearbyGas(here.coord);
@@ -448,9 +432,7 @@ export function useOdos() {
         detourMi: 0,
         inWindow: true,
       }));
-      const plan = { pick: options[0] ?? null, options, offline: false };
-      setGas(plan);
-      return plan;
+      return { pick: options[0] ?? null, options, offline: false };
     } catch {
       notify('No signal to search for gas', 'danger');
       return null;
@@ -463,22 +445,19 @@ export function useOdos() {
     bufferHandled.current = true;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     (async () => {
-      const plan = await findGas();
-      const pick = plan?.pick;
+      const pick = (await findGas())?.pick;
+      const range = `Fuel range is ${fmtMiles(fuelOutlook.rangeMi)}.`;
+      let msg: string;
       if (pick && live.current.route) {
         await addStop(pick.place, true);
-        const msg = `Fuel range is ${fmtMiles(fuelOutlook.rangeMi)}. Added a gas stop: ${pick.place.name}, ${fmtMiles(pick.aheadMi)} ahead.`;
-        notify(msg, 'amber');
-        speak(msg);
+        msg = `${range} Added a gas stop: ${pick.place.name}, ${fmtMiles(pick.aheadMi)} ahead.`;
       } else if (pick) {
-        const msg = `Fuel range is ${fmtMiles(fuelOutlook.rangeMi)}. Nearest gas: ${pick.place.name}, ${fmtMiles(pick.aheadMi)} away.`;
-        notify(msg, 'amber');
-        speak(msg);
+        msg = `${range} Nearest gas: ${pick.place.name}, ${fmtMiles(pick.aheadMi)} away.`;
       } else {
-        const msg = `Fuel range is ${fmtMiles(fuelOutlook.rangeMi)}. No gas found ahead yet. Tap Gas to search.`;
-        notify(msg, 'amber');
-        speak(msg);
+        msg = `${range} No gas found ahead yet. Tap Gas to search.`;
       }
+      notify(msg, 'amber');
+      speak(msg);
     })();
   }, [fuelOutlook?.inBuffer, fuelOutlook?.rangeMi, addStop, findGas, notify, speak]);
 
@@ -560,7 +539,7 @@ export function useOdos() {
           onFix({
             coord: [loc.coords.longitude, loc.coords.latitude],
             heading: loc.coords.heading != null && loc.coords.heading >= 0 ? loc.coords.heading : null,
-            mph: Math.max(0, (loc.coords.speed ?? 0) * 2.23694),
+            mph: Math.max(0, (loc.coords.speed ?? 0) / MPH),
             accuracy: loc.coords.accuracy ?? null,
             at: loc.timestamp,
           }),
@@ -580,35 +559,12 @@ export function useOdos() {
       const r = live.current.route;
       if (!r) return;
       const mph = Math.max(30, r.cruiseMph || 60);
-      simAlong.current = Math.min(r.line.length, simAlong.current + mph * 0.44704 * live.current.settings.simSpeed);
+      simAlong.current = Math.min(r.line.length, simAlong.current + mph * MPH * live.current.settings.simSpeed);
       const p = pointAt(r.line, simAlong.current);
       onFix({ coord: p.coord, heading: p.bearing, mph, accuracy: 5, at: Date.now() });
     }, 1000);
     return () => clearInterval(id);
   }, [settings.sim, onFix]);
-
-  // ── lanes: map guidance always; speed-based advice when lane speeds exist (Sim for now) ──
-  useEffect(() => {
-    const t0 = Date.now();
-    const id = setInterval(() => {
-      const { progress: p, settings: s, route: r, fix: here } = live.current;
-      const ahead = p?.lanesAhead ?? null;
-      const count = ahead?.lanes.length ?? (s.sim && r ? 3 : 0);
-      if (!r || count === 0) {
-        setLanes(null);
-        return;
-      }
-      const allowed = ahead?.lanes.map((l) => l.valid);
-      if (!s.sim) {
-        setLanes({ count, guides: ahead?.lanes ?? null, inMeters: ahead?.inMeters ?? null, advice: null, simulated: false });
-        return;
-      }
-      const obs = simulateLanes(count, Math.max(30, here?.mph ?? 60), (Date.now() - t0) / 1000);
-      const advice = advisor.current.update(obs, { allowed });
-      setLanes({ count, guides: ahead?.lanes ?? null, inMeters: ahead?.inMeters ?? null, advice, simulated: true });
-    }, 2000);
-    return () => clearInterval(id);
-  }, []);
 
   // ── one-tap share / copy ──
   const shareLocation = useCallback(async () => {
@@ -698,8 +654,6 @@ export function useOdos() {
     route,
     progress,
     routing,
-    gas,
-    lanes,
     offline,
     toast,
     pin,

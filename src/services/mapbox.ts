@@ -172,7 +172,7 @@ export async function searchPlaces(query: string, near?: LngLat): Promise<Place[
 }
 
 /** Mapbox POI categories per ODOS place type. */
-export const CATEGORIES: Record<'gas' | 'hotel' | 'camp', string[]> = {
+const CATEGORIES: Record<'gas' | 'hotel' | 'camp', string[]> = {
   gas: ['gas_station'],
   hotel: ['hotel', 'motel'],
   camp: ['campground', 'rv_park'],
