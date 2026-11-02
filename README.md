@@ -142,4 +142,4 @@ please give it its own name and icon so people can tell them apart.
 
 ## License
 
-[MIT](LICENSE) © 2026 Egghead Development
+[MIT](LICENSE) © 2026 Hall Project Systems
