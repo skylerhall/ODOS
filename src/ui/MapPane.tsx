@@ -1,6 +1,6 @@
 import Mapbox from '@rnmapbox/maps';
 import { useMemo } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { MAPBOX_TOKEN, STYLE } from '../config';
 import type { LngLat } from '../core/geo';
 import type { Stop } from '../core/places';
@@ -15,6 +15,14 @@ import { WeatherMapLayers } from './WeatherOverlay';
 if (MAPBOX_TOKEN) Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 const STOP_ICONS: Record<string, string> = { gas: '⛽', hotel: '🏨', camp: '🏕', freepark: '🅿', custom: '📍', destination: '🏁' };
+
+/**
+ * The layer Mapbox draws your position marker in (Android's LocationComponentConstants). Layers we add
+ * later go on top of the map by default, which put the route line over the vehicle, so route, traffic
+ * and trail lines are inserted below it. Left to the default on iOS, which names its layer differently
+ * and hasn't been tested.
+ */
+const PUCK_LAYER = Platform.OS === 'android' ? 'mapbox-location-indicator-layer' : undefined;
 
 /** Top-down markers drawn by scripts/make-puck-icons.py. */
 const PUCK_IMAGES = {
@@ -115,25 +123,28 @@ export function MapPane(props: {
       {props.sim && props.fix ? <Mapbox.CustomLocationProvider coordinate={props.fix.coord} heading={props.fix.heading ?? 0} /> : null}
       <WeatherMapLayers cond={props.weather} enabled={props.weatherFx} night={props.night} />
       <Mapbox.Images images={PUCK_IMAGES} />
-      {props.puck === 'dot' ? (
-        <Mapbox.LocationPuck puckBearingEnabled puckBearing="course" pulsing={{ isEnabled: true, color: t.brand }} />
-      ) : (
-        <Mapbox.LocationPuck
-          puckBearingEnabled
-          puckBearing="course"
-          // The vehicle is the bearing image so it rotates with your heading; the default blue dot
-          // drawn on top is replaced by a transparent image.
-          bearingImage={`puck-${props.puck}`}
-          topImage="puck-none"
-          shadowImage="puck-none"
-          scale={['interpolate', ['linear'], ['zoom'], 10, 0.6, 15, 0.9, 18, 1.1]}
-        />
-      )}
+      {/* One puck whose look changes in place: remounting it would briefly remove PUCK_LAYER. */}
+      <Mapbox.LocationPuck
+        puckBearingEnabled
+        puckBearing="course"
+        {...(props.puck === 'dot'
+          ? { pulsing: { isEnabled: true, color: t.brand } }
+          : {
+              // The vehicle is the bearing image so it turns with your heading; the default dot drawn on
+              // top of it is replaced by a transparent image.
+              bearingImage: `puck-${props.puck}`,
+              topImage: 'puck-none',
+              shadowImage: 'puck-none',
+              scale: ['interpolate', ['linear'], ['zoom'], 10, 0.6, 15, 0.9, 18, 1.1],
+              pulsing: { isEnabled: false },
+            })}
+      />
 
       {props.traffic ? (
         <Mapbox.VectorSource id="traffic" url={STYLE.trafficTiles}>
           <Mapbox.LineLayer
             id="traffic-lines"
+            belowLayerID={PUCK_LAYER}
             sourceLayerID="traffic"
             filter={['in', ['get', 'congestion'], ['literal', ['moderate', 'heavy', 'severe']]]}
             style={{
@@ -158,16 +169,23 @@ export function MapPane(props: {
         <Mapbox.ShapeSource id="trails" shape={props.trail.lines}>
           <Mapbox.LineLayer
             id="trails-road"
+            belowLayerID={PUCK_LAYER}
             filter={['==', ['get', 'kind'], 'road']}
             style={{ lineColor: props.night ? '#8C96A6' : '#7D838C', lineWidth: 1.5, lineOpacity: 0.7 }}
           />
           <Mapbox.LineLayer
             id="trails-track"
+            belowLayerID={PUCK_LAYER}
             filter={['==', ['get', 'kind'], 'track']}
-            style={{ lineColor: props.night ? '#D9A464' : '#9C6A2C', lineWidth: ['interpolate', ['linear'], ['zoom'], 11, 1.5, 16, 4], lineCap: 'round' }}
+            style={{
+              lineColor: props.night ? '#D9A464' : '#9C6A2C',
+              lineWidth: ['interpolate', ['linear'], ['zoom'], 11, 1.5, 16, 4],
+              lineCap: 'round',
+            }}
           />
           <Mapbox.LineLayer
             id="trails-rough"
+            belowLayerID={PUCK_LAYER}
             filter={['==', ['get', 'kind'], 'rough']}
             style={{
               lineColor: props.night ? '#FF8A50' : '#C2410C',
@@ -177,6 +195,7 @@ export function MapPane(props: {
           />
           <Mapbox.LineLayer
             id="trails-path"
+            belowLayerID={PUCK_LAYER}
             filter={['==', ['get', 'kind'], 'path']}
             style={{
               lineColor: props.night ? '#E8C49A' : '#6B4423',
@@ -187,14 +206,25 @@ export function MapPane(props: {
         </Mapbox.ShapeSource>
       ) : null}
       {props.trail && props.trail.track.length > 1 ? (
-        <Mapbox.ShapeSource id="track" shape={{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: props.trail.track } }}>
-          <Mapbox.LineLayer id="track-line" style={{ lineColor: t.brand, lineWidth: 3.5, lineOpacity: 0.9, lineJoin: 'round', lineCap: 'round' }} />
+        <Mapbox.ShapeSource
+          id="track"
+          shape={{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: props.trail.track } }}
+        >
+          <Mapbox.LineLayer
+            id="track-line"
+            belowLayerID={PUCK_LAYER}
+            style={{ lineColor: t.brand, lineWidth: 3.5, lineOpacity: 0.9, lineJoin: 'round', lineCap: 'round' }}
+          />
         </Mapbox.ShapeSource>
       ) : null}
 
       {routeShape ? (
         <Mapbox.ShapeSource id="route" shape={routeShape}>
-          <Mapbox.LineLayer id="route-casing" style={{ lineColor: '#0A2A66', lineWidth: 11, lineJoin: 'round', lineCap: 'round' }} />
+          <Mapbox.LineLayer
+            id="route-casing"
+            belowLayerID={PUCK_LAYER}
+            style={{ lineColor: '#0A2A66', lineWidth: 11, lineJoin: 'round', lineCap: 'round' }}
+          />
           <Mapbox.LineLayer
             id="route-line"
             aboveLayerID="route-casing"
