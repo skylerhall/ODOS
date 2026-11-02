@@ -21,7 +21,12 @@ export function ManeuverBanner({ progress, rerouting }: { progress: Progress | n
   const m = target.maneuver;
   const say = `${m.instruction}, in ${distance(progress.toManeuver)}`;
   return (
-    <View style={[styles.banner, { backgroundColor: t.banner }, elevate(t, 2)]} accessible accessibilityRole="header" accessibilityLabel={say}>
+    <View
+      style={[styles.banner, { backgroundColor: t.banner }, elevate(t, 2)]}
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={say}
+    >
       <View style={[styles.glyphWell, { backgroundColor: t.brand }]}>
         <Icon name={maneuverGlyph(m.type, m.modifier)} size={30} color={t.onAccent} />
       </View>

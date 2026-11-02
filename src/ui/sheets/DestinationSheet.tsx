@@ -12,7 +12,11 @@ const KIND_ICON: Partial<Record<Place['kind'], IconName>> = { gas: 'gas-station'
 const SHORTCUT_ICON: Record<ShortcutIcon, IconName> = { home: 'home', work: 'briefcase', star: 'star' };
 
 const howFar = (p: SearchResult) =>
-  p.meters == null ? undefined : p.driveSeconds != null ? `${duration(p.driveSeconds)} · ${distance(p.meters)}` : `${distance(p.meters)} away`;
+  p.meters == null
+    ? undefined
+    : p.driveSeconds != null
+      ? `${duration(p.driveSeconds)} · ${distance(p.meters)}`
+      : `${distance(p.meters)} away`;
 
 type Assigning = { key: string; label: string; existing: boolean };
 
@@ -73,9 +77,7 @@ export function DestinationSheet(props: {
 
   return (
     <Sheet visible title={assigning ? `Set ${assigning.label}` : 'Where to?'} onClose={props.onClose}>
-      {assigning ? (
-        <Text style={[styles.note, { color: t.muted }]}>Search for the address, then tap Save.</Text>
-      ) : null}
+      {assigning ? <Text style={[styles.note, { color: t.muted }]}>Search for the address, then tap Save.</Text> : null}
       <TextInput
         value={q}
         onChangeText={setQ}

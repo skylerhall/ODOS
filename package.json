@@ -30,6 +30,7 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~58.0.4",
+    "prettier": "3.9.10",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
   },
@@ -41,6 +42,8 @@
     "typecheck": "tsc --noEmit",
     "apk": "bash scripts/build-apk.sh",
     "lint": "expo lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test:live": "vitest run tests/live"
   },
   "private": true

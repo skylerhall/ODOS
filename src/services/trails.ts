@@ -11,7 +11,11 @@ import { overpass } from './overpass';
 import { load, save } from './storage';
 
 /** What the list of downloaded areas shows, without reading each (large) area file. */
-export type TrailAreaInfo = Pick<TrailArea, 'id' | 'name' | 'center' | 'radiusM' | 'createdAt'> & { trails: number; places: number; bytes: number };
+export type TrailAreaInfo = Pick<TrailArea, 'id' | 'name' | 'center' | 'radiusM' | 'createdAt'> & {
+  trails: number;
+  places: number;
+  bytes: number;
+};
 
 export type DownloadProgress = { stage: 'trails' | 'map' | 'done'; percent: number };
 
@@ -27,7 +31,9 @@ export async function listTrailAreas(): Promise<TrailAreaInfo[]> {
 
 /** The downloaded area you're in (nearest center first), if any. */
 export function areaAt(areas: TrailAreaInfo[], p: LngLat): TrailAreaInfo | null {
-  return areas.filter((a) => haversine(a.center, p) <= a.radiusM).sort((a, b) => haversine(a.center, p) - haversine(b.center, p))[0] ?? null;
+  return (
+    areas.filter((a) => haversine(a.center, p) <= a.radiusM).sort((a, b) => haversine(a.center, p) - haversine(b.center, p))[0] ?? null
+  );
 }
 
 export async function loadTrailArea(id: string): Promise<TrailArea | null> {
@@ -46,7 +52,9 @@ export async function deleteTrailArea(id: string): Promise<TrailAreaInfo[]> {
     if (f.exists) f.delete();
   } catch {}
   const packs = await Mapbox.offlineManager.getPacks().catch(() => []);
-  await Promise.all(packs.filter((p) => p.name.startsWith(`${PACK_PREFIX}${id}`)).map((p) => Mapbox.offlineManager.deletePack(p.name).catch(() => {})));
+  await Promise.all(
+    packs.filter((p) => p.name.startsWith(`${PACK_PREFIX}${id}`)).map((p) => Mapbox.offlineManager.deletePack(p.name).catch(() => {})),
+  );
   const next = (await listTrailAreas()).filter((a) => a.id !== id);
   await save(INDEX_KEY, next);
   return next;
@@ -56,7 +64,11 @@ export async function deleteTrailArea(id: string): Promise<TrailAreaInfo[]> {
  * Download trails and a topo map within `radiusMi` of `center`. The trail data comes first (it's what
  * routing needs); map tiles keep downloading in the background and report through `onProgress`.
  */
-export async function downloadTrailArea(center: LngLat, radiusMi: number, onProgress: (p: DownloadProgress) => void): Promise<TrailAreaInfo[]> {
+export async function downloadTrailArea(
+  center: LngLat,
+  radiusMi: number,
+  onProgress: (p: DownloadProgress) => void,
+): Promise<TrailAreaInfo[]> {
   const radiusM = milesToMeters(radiusMi);
   const createdAt = Date.now();
   const id = `a${createdAt.toString(36)}`;
@@ -70,7 +82,16 @@ export async function downloadTrailArea(center: LngLat, radiusMi: number, onProg
   const text = JSON.stringify(area);
   dir().create({ intermediates: true, idempotent: true });
   await fileFor(id).write(text);
-  const info: TrailAreaInfo = { id, name: area.name, center, radiusM, createdAt, trails: area.ways.length, places: area.pois.length, bytes: text.length };
+  const info: TrailAreaInfo = {
+    id,
+    name: area.name,
+    center,
+    radiusM,
+    createdAt,
+    trails: area.ways.length,
+    places: area.pois.length,
+    bytes: text.length,
+  };
   const areas = [info, ...(await listTrailAreas())];
   await save(INDEX_KEY, areas);
 

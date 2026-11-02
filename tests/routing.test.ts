@@ -41,7 +41,9 @@ describe('getRoutes with avoid tolls', () => {
 
   it('falls back to the toll route when no toll-free route exists', async () => {
     const fetchMock = vi.fn(async (url: string) =>
-      url.includes('exclude=toll') ? ok({ code: 'NoRoute', message: 'No route found', routes: [] }) : ok({ code: 'Ok', routes: [tollRoute] }),
+      url.includes('exclude=toll')
+        ? ok({ code: 'NoRoute', message: 'No route found', routes: [] })
+        : ok({ code: 'Ok', routes: [tollRoute] }),
     );
     vi.stubGlobal('fetch', fetchMock);
     const routes = await getRoutes([A, B], { avoidTolls: true });
@@ -64,7 +66,11 @@ describe('getRoutes on long trips', () => {
 
   // Pretend Mapbox routes at most 1,000 km per request, in a straight line with one step.
   const LIMIT = 1_000_000;
-  const tooFar = { ok: false, status: 422, json: async () => ({ code: 'InvalidInput', message: 'Route exceeds maximum distance limitation' }) };
+  const tooFar = {
+    ok: false,
+    status: 422,
+    json: async () => ({ code: 'InvalidInput', message: 'Route exceeds maximum distance limitation' }),
+  };
   const straight = (a: LngLat, b: LngLat) => {
     const d = haversine(a, b);
     return {
@@ -95,14 +101,19 @@ describe('getRoutes on long trips', () => {
       if (url.includes('/geocode/v6/reverse')) {
         const q = new URL(url).searchParams;
         // The "town" is a little off the halfway point.
-        return ok({ features: [{ geometry: { coordinates: [Number(q.get('longitude')) + 0.01, Number(q.get('latitude'))] }, properties: {} }] });
+        return ok({
+          features: [{ geometry: { coordinates: [Number(q.get('longitude')) + 0.01, Number(q.get('latitude'))] }, properties: {} }],
+        });
       }
       const path = new URL(url).pathname.split('/').at(-1)!;
       const pts = path.split(';').map((p) => p.split(',').map(Number) as LngLat);
       const total = pts.slice(1).reduce((s, p, i) => s + haversine(pts[i], p), 0);
       if (total > LIMIT) return tooFar;
       const legs = pts.slice(1).map((p, i) => straight(pts[i], p));
-      return ok({ code: 'Ok', routes: [{ ...legs[0], distance: total, legs: legs.flatMap((l) => l.legs), geometry: { coordinates: pts } }] });
+      return ok({
+        code: 'Ok',
+        routes: [{ ...legs[0], distance: total, legs: legs.flatMap((l) => l.legs), geometry: { coordinates: pts } }],
+      });
     });
   }
 
@@ -142,7 +153,10 @@ describe('getRoutes on long trips', () => {
   });
 
   it('passes other errors through', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ok({ code: 'NoRoute', message: 'No route found', routes: [] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ok({ code: 'NoRoute', message: 'No route found', routes: [] })),
+    );
     await expect(getRoutes([NYC, SF])).rejects.toThrow('No route found');
   });
 });

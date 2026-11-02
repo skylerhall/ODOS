@@ -1,6 +1,6 @@
 # ODOS
 
-*ὁδός (odós): Greek for "road" or "way."*
+_ὁδός (odós): Greek for "road" or "way."_
 
 A road-trip GPS app for Android, built with Expo and Mapbox. It gives turn-by-turn directions with
 live traffic, and it also handles the things other map apps leave to you: when to get gas, where to
@@ -10,24 +10,24 @@ ODOS is open source under the [MIT License](LICENSE). Fork it, learn from it, bu
 
 ## Features
 
-| Feature | How it works |
-|---|---|
-| **Turn-by-turn** | Mapbox routing with live traffic, a route line colored by congestion, voice prompts and automatic rerouting. Long trips past Mapbox's per-request distance limit are routed in pieces and joined into one route. |
-| **Trip controls** | Search from the top bar to add a stop or reroute mid-trip, go back to the original trip, or end navigation. Long-press anywhere on the map to drop a pin and go there. |
-| **Avoid tolls** | One toggle. If no toll-free route exists, ODOS says so and uses the toll route. |
-| **Speed** | A small capsule shows your speed with the posted limit beside it, and turns red when you're more than 5 mph over. |
-| **Vehicle match** | Type "dodge" and you get every Dodge in the built-in list (about 390 vehicles, works offline). Add the year, like "2007 tundra 4.7", and the same search also pulls exact matches from the EPA list of every US vehicle since 1984. You can also decode a VIN through NHTSA or enter your own numbers. Your position marker is a car, pickup or van to match. |
-| **Fuel tracking** | Set your starting fuel level in eighths. Fuel burns as you drive at your vehicle's EPA MPG, adjusted for speed. Range is estimated at the pace you'll drive on this route. |
-| **50-mile buffer** | When range drops to 50 miles, ODOS alerts you, searches for gas **15–30 miles ahead on your route**, and adds the best station as a stop. "Nearest gas station" in search lists what's close. |
-| **Rest finder (≤ 2 hrs)** | Hotels, campgrounds (including federal ones) and free overnight parking (rest areas, truck stops, free campsites) within a 2-hour drive of you, your next stop, your destination or a dropped pin. |
-| **Trail Mode** | Download trails around a point ahead of time, then navigate them with no signal: on foot or off-road (vehicles stay off footpaths and are warned about gates). Includes a topo map, a breadcrumb track with a route back, dead-end warnings, and a compass arrow when you're off the trail network. |
-| **Offline** | When a trip starts, ODOS saves map tiles along the route plus gas stations, hotels and campgrounds along the corridor, so the fuel alert and pickers keep working without signal. |
-| **Weather** | Current conditions, the forecast along your route for the hour you'll reach each point, National Weather Service alerts, and rain, snow and fog drawn on the map. Bad weather lowers the range estimate. |
-| **Saved places** | Recent places, plus shortcuts like Home and Work. |
-| **Day and night** | Switches to the dark map at sunset and back at sunrise for where you are, or by hand. Portrait and landscape layouts. |
-| **Share / copy** | Share your coordinates with a map link that works on any phone, or copy `lat, lon`. |
-| **Accessibility** | Every button is at least 56 px, high-contrast and labeled for screen readers. |
-| **Sim mode** | Drives your route at 1×, 4×, 16× or 60× so you can watch the fuel alert and auto gas stop without leaving the couch. |
+| Feature                   | How it works                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Turn-by-turn**          | Mapbox routing with live traffic, a route line colored by congestion, voice prompts and automatic rerouting. Long trips past Mapbox's per-request distance limit are routed in pieces and joined into one route.                                                                                                                                              |
+| **Trip controls**         | Search from the top bar to add a stop or reroute mid-trip, go back to the original trip, or end navigation. Long-press anywhere on the map to drop a pin and go there.                                                                                                                                                                                        |
+| **Avoid tolls**           | One toggle. If no toll-free route exists, ODOS says so and uses the toll route.                                                                                                                                                                                                                                                                               |
+| **Speed**                 | A small capsule shows your speed with the posted limit beside it, and turns red when you're more than 5 mph over.                                                                                                                                                                                                                                             |
+| **Vehicle match**         | Type "dodge" and you get every Dodge in the built-in list (about 390 vehicles, works offline). Add the year, like "2007 tundra 4.7", and the same search also pulls exact matches from the EPA list of every US vehicle since 1984. You can also decode a VIN through NHTSA or enter your own numbers. Your position marker is a car, pickup or van to match. |
+| **Fuel tracking**         | Set your starting fuel level in eighths. Fuel burns as you drive at your vehicle's EPA MPG, adjusted for speed. Range is estimated at the pace you'll drive on this route.                                                                                                                                                                                    |
+| **50-mile buffer**        | When range drops to 50 miles, ODOS alerts you, searches for gas **15–30 miles ahead on your route**, and adds the best station as a stop. "Nearest gas station" in search lists what's close.                                                                                                                                                                 |
+| **Rest finder (≤ 2 hrs)** | Hotels, campgrounds (including federal ones) and free overnight parking (rest areas, truck stops, free campsites) within a 2-hour drive of you, your next stop, your destination or a dropped pin.                                                                                                                                                            |
+| **Trail Mode**            | Download trails around a point ahead of time, then navigate them with no signal: on foot or off-road (vehicles stay off footpaths and are warned about gates). Includes a topo map, a breadcrumb track with a route back, dead-end warnings, and a compass arrow when you're off the trail network.                                                           |
+| **Offline**               | When a trip starts, ODOS saves map tiles along the route plus gas stations, hotels and campgrounds along the corridor, so the fuel alert and pickers keep working without signal.                                                                                                                                                                             |
+| **Weather**               | Current conditions, the forecast along your route for the hour you'll reach each point, National Weather Service alerts, and rain, snow and fog drawn on the map. Bad weather lowers the range estimate.                                                                                                                                                      |
+| **Saved places**          | Recent places, plus shortcuts like Home and Work.                                                                                                                                                                                                                                                                                                             |
+| **Day and night**         | Switches to the dark map at sunset and back at sunrise for where you are, or by hand. Portrait and landscape layouts.                                                                                                                                                                                                                                         |
+| **Share / copy**          | Share your coordinates with a map link that works on any phone, or copy `lat, lon`.                                                                                                                                                                                                                                                                           |
+| **Accessibility**         | Every button is at least 56 px, high-contrast and labeled for screen readers.                                                                                                                                                                                                                                                                                 |
+| **Sim mode**              | Drives your route at 1×, 4×, 16× or 60× so you can watch the fuel alert and auto gas stop without leaving the couch.                                                                                                                                                                                                                                          |
 
 ## Try it
 
@@ -49,7 +49,7 @@ You need Node 22 and a free [Mapbox](https://www.mapbox.com) account.
    npm install
    cp .env.example .env      # then paste your pk. token into .env
    ```
-3. *(Optional)* Add a free [Recreation.gov RIDB key](https://ridb.recreation.gov) to `.env` as
+3. _(Optional)_ Add a free [Recreation.gov RIDB key](https://ridb.recreation.gov) to `.env` as
    `EXPO_PUBLIC_RIDB_KEY` for federal campgrounds in the rest finder.
 
 Then pick one:
@@ -89,14 +89,14 @@ If you publish your own build, please make it your own:
 
 ## Data sources
 
-| Service | Used for | Terms to know |
-|---|---|---|
-| [Mapbox](https://www.mapbox.com) | Maps, routing, traffic, search | Free tier, then paid. Its logo and attribution must stay visible on the map. |
+| Service                                                                                                                   | Used for                       | Terms to know                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Mapbox](https://www.mapbox.com)                                                                                          | Maps, routing, traffic, search | Free tier, then paid. Its logo and attribution must stay visible on the map.                                                                   |
 | [OpenStreetMap](https://www.openstreetmap.org/copyright) via [Overpass](https://wiki.openstreetmap.org/wiki/Overpass_API) | Trails, free overnight parking | © OpenStreetMap contributors, [ODbL](https://opendatacommons.org/licenses/odbl/). The public Overpass servers are shared; keep requests light. |
-| [Open-Meteo](https://open-meteo.com) | Weather and forecasts | The free API is for **non-commercial use**. Commercial apps need an Open-Meteo plan. |
-| [National Weather Service](https://www.weather.gov/documentation/services-web-api) | Weather alerts (US) | Public domain. |
-| [fueleconomy.gov](https://www.fueleconomy.gov/feg/ws/) and [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) | Vehicle MPG, VIN decoding | US government data. |
-| [Recreation.gov RIDB](https://ridb.recreation.gov) | Federal campgrounds | Free key. |
+| [Open-Meteo](https://open-meteo.com)                                                                                      | Weather and forecasts          | The free API is for **non-commercial use**. Commercial apps need an Open-Meteo plan.                                                           |
+| [National Weather Service](https://www.weather.gov/documentation/services-web-api)                                        | Weather alerts (US)            | Public domain.                                                                                                                                 |
+| [fueleconomy.gov](https://www.fueleconomy.gov/feg/ws/) and [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/)                  | Vehicle MPG, VIN decoding      | US government data.                                                                                                                            |
+| [Recreation.gov RIDB](https://ridb.recreation.gov)                                                                        | Federal campgrounds            | Free key.                                                                                                                                      |
 
 ## Project layout
 
@@ -112,14 +112,15 @@ plugins/          Expo config plugins (release signing)
 scripts/          APK build, CI helpers, position-marker artwork
 ```
 
-Checks before a pull request: `npm test`, `npm run typecheck` and `npm run lint`. See
+Checks before a pull request: `npm test`, `npm run typecheck`, `npm run lint` and `npm run format:check`
+(`npm run format` fixes formatting). See
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 
-- **Lane advice on screen.** The lane-scoring engine (70% live lane speed, 30% historical flow) is in
-  `src/core/lanes.ts`, but no public API provides live per-lane speeds, so it only runs in Sim mode
-  and isn't shown while driving.
+- **Lane advice.** The lane-scoring engine (70% live lane speed, 30% historical flow) is in
+  `src/core/lanes.ts` with tests, but no public API provides live per-lane speeds, so it isn't wired
+  into the app yet.
 - **Background navigation:** keep guiding with the screen off.
 - **Live location sharing:** a link that updates as you drive.
 - **Hazard reports:** police, closures and road hazards, through a small backend.

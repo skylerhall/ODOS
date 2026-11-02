@@ -16,6 +16,7 @@ version. A screenshot helps a lot. Please leave out your exact location unless t
    npm test
    npm run typecheck
    npm run lint
+   npm run format:check   # npm run format fixes it
    ```
 4. Open a pull request saying what changed and how you tested it (on a phone, an emulator, or
    Sim mode).

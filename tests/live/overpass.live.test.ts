@@ -11,13 +11,23 @@ const RADIUS = 1500;
 
 it('downloads, parses and routes real trails', async () => {
   // Same helper the app uses, retries and second server included.
-  const json = await overpass<Parameters<typeof parseOverpass>[0]>(trailQuery(CHAUTAUQUA, RADIUS), { timeoutMs: 100000, retryDelaysMs: [5000, 15000] });
+  const json = await overpass<Parameters<typeof parseOverpass>[0]>(trailQuery(CHAUTAUQUA, RADIUS), {
+    timeoutMs: 100000,
+    retryDelaysMs: [5000, 15000],
+  });
   const area = parseOverpass(json, { id: 'live', name: 'live', center: CHAUTAUQUA, radiusM: RADIUS, createdAt: 0 });
   const kinds = new Map<string, number>();
   area.ways.forEach((w) => kinds.set(w.hw, (kinds.get(w.hw) ?? 0) + 1));
-  console.log(`ways ${area.ways.length}, nodes ${area.coords.length / 2}, gates ${area.gates.length}, barriers ${area.barriers.length}, places ${area.pois.length}, ${(JSON.stringify(area).length / 1e3).toFixed(0)} kB`);
+  console.log(
+    `ways ${area.ways.length}, nodes ${area.coords.length / 2}, gates ${area.gates.length}, barriers ${area.barriers.length}, places ${area.pois.length}, ${(JSON.stringify(area).length / 1e3).toFixed(0)} kB`,
+  );
   console.log(`highways: ${[...kinds].map(([k, n]) => `${k}=${n}`).join(' ')}`);
-  console.log(`places: ${area.pois.slice(0, 10).map((p) => `${p.kind}:${p.name}`).join(' | ')}`);
+  console.log(
+    `places: ${area.pois
+      .slice(0, 10)
+      .map((p) => `${p.kind}:${p.name}`)
+      .join(' | ')}`,
+  );
   expect(area.ways.filter((w) => w.hw === 'path' || w.hw === 'footway').length).toBeGreaterThan(5);
 
   const g = buildGraph(area, 'hike');

@@ -89,20 +89,35 @@ describe('gas stop picking', () => {
 
 describe('rest finder limit', () => {
   it('drops anything over a 2-hour drive and sorts nearest first', () => {
-    const opt = (id: string, h: number): RestOption => ({ id, name: id, kind: 'hotel', coord: START, driveSeconds: h * 3600, miles: h * 50, estimated: false });
+    const opt = (id: string, h: number): RestOption => ({
+      id,
+      name: id,
+      kind: 'hotel',
+      coord: START,
+      driveSeconds: h * 3600,
+      miles: h * 50,
+      estimated: false,
+    });
     expect(withinRestLimit([opt('a', 1.5), opt('b', 2.5), opt('c', 0.2)]).map((o) => o.id)).toEqual(['c', 'a']);
   });
 });
 
 describe('lanes (70% live / 30% human-flow)', () => {
   it('picks the fastest lane on live speed when history agrees', () => {
-    const s = scoreLanes([{ live: 70, human: 68 }, { live: 64, human: 62 }, { live: 58, human: 55 }]);
+    const s = scoreLanes([
+      { live: 70, human: 68 },
+      { live: 64, human: 62 },
+      { live: 58, human: 55 },
+    ]);
     expect(s.best).toBe(0);
     expect(s.flip).toBe(false);
   });
   it('flips when the human-flow pattern outweighs a small live edge', () => {
     // Live says left is 2 mph faster; history says the right lane is 12 mph faster here.
-    const s = scoreLanes([{ live: 62, human: 55 }, { live: 60, human: 67 }]);
+    const s = scoreLanes([
+      { live: 62, human: 55 },
+      { live: 60, human: 67 },
+    ]);
     expect(s.liveBest).toBe(0);
     expect(s.best).toBe(1);
     expect(s.flip).toBe(true);
@@ -176,7 +191,15 @@ describe('route parsing + navigation', () => {
             duration: 6000,
             name: 'US-24',
             maneuver: { type: 'off ramp', modifier: 'right', instruction: 'Take exit 100', location: coords[100] },
-            intersections: [{ location: coords[100], lanes: [{ valid: false, indications: ['straight'] }, { valid: true, indications: ['right'] }] }],
+            intersections: [
+              {
+                location: coords[100],
+                lanes: [
+                  { valid: false, indications: ['straight'] },
+                  { valid: true, indications: ['right'] },
+                ],
+              },
+            ],
           },
           { distance: 0, duration: 0, name: '', maneuver: { type: 'arrive', instruction: 'Arrive', location: coords[200] } },
         ],
@@ -202,7 +225,11 @@ describe('route parsing + navigation', () => {
         ...leg,
         annotation: {
           ...leg.annotation,
-          maxspeed: coords.slice(1).map((_, i) => (i < 100 ? { speed: 75, unit: 'mph' as const } : i < 150 ? { speed: 88, unit: 'km/h' as const } : { unknown: true })),
+          maxspeed: coords
+            .slice(1)
+            .map((_, i) =>
+              i < 100 ? { speed: 75, unit: 'mph' as const } : i < 150 ? { speed: 88, unit: 'km/h' as const } : { unknown: true },
+            ),
         },
       })),
     };
@@ -218,7 +245,9 @@ describe('route parsing + navigation', () => {
       ...api,
       legs: api.legs.map((leg) => ({
         ...leg,
-        steps: leg.steps.map((st, i) => (i === 1 ? { ...st, intersections: [{ location: coords[100], classes: ['toll', 'motorway'] }] } : st)),
+        steps: leg.steps.map((st, i) =>
+          i === 1 ? { ...st, intersections: [{ location: coords[100], classes: ['toll', 'motorway'] }] } : st,
+        ),
       })),
     };
     expect(parseRoute(withToll).tolls).toBe(true);

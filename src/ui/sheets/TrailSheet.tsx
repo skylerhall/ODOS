@@ -62,12 +62,22 @@ export function TrailSheet({ onClose, trail, here }: { onClose: () => void; trai
       {trail.active ? (
         <>
           <Text style={[styles.status, { color: t.text }]}>
-            <Text style={{ color: t.brandText, fontFamily: font('700') }}>On</Text> · {trail.area?.name} · {(trail.track.meters / MI).toFixed(1)} mi tracked
+            <Text style={{ color: t.brandText, fontFamily: font('700') }}>On</Text> · {trail.area?.name} ·{' '}
+            {(trail.track.meters / MI).toFixed(1)} mi tracked
           </Text>
           <Text style={[styles.note, { color: t.muted }]}>
             Works with no signal. Hold the map anywhere to drop a pin, then Go to follow the trails there.
           </Text>
-          <BigButton icon="home-import-outline" label="Back to start" tone="accent" onPress={() => { trail.backToStart(); onClose(); }} disabled={trail.track.coords.length < 2} />
+          <BigButton
+            icon="home-import-outline"
+            label="Back to start"
+            tone="accent"
+            onPress={() => {
+              trail.backToStart();
+              onClose();
+            }}
+            disabled={trail.track.coords.length < 2}
+          />
           {places.length ? (
             <>
               <Text style={[styles.heading, { color: t.muted }]}>PLACES IN THIS AREA</Text>
@@ -86,16 +96,33 @@ export function TrailSheet({ onClose, trail, here }: { onClose: () => void; trai
               ))}
             </>
           ) : null}
-          <BigButton icon="stop-circle-outline" label="End Trail Mode" tone="danger" onPress={() => { trail.stop(); onClose(); }} style={{ marginTop: 12 }} />
+          <BigButton
+            icon="stop-circle-outline"
+            label="End Trail Mode"
+            tone="danger"
+            onPress={() => {
+              trail.stop();
+              onClose();
+            }}
+            style={{ marginTop: 12 }}
+          />
         </>
       ) : (
         <>
           {trail.here ? (
-            <BigButton icon="map-marker-path" label={`Start in ${trail.here.name}`} tone="accent" onPress={() => { trail.start(trail.here!); onClose(); }} />
+            <BigButton
+              icon="map-marker-path"
+              label={`Start in ${trail.here.name}`}
+              tone="accent"
+              onPress={() => {
+                trail.start(trail.here!);
+                onClose();
+              }}
+            />
           ) : (
             <Text style={[styles.note, { color: t.muted }]}>
-              Download the trails around you while you still have signal. Trail Mode then works with none: the map, trail
-              directions, your track and Back to start.
+              Download the trails around you while you still have signal. Trail Mode then works with none: the map, trail directions, your
+              track and Back to start.
             </Text>
           )}
 
@@ -107,14 +134,22 @@ export function TrailSheet({ onClose, trail, here }: { onClose: () => void; trai
           </View>
           <BigButton
             icon="download-outline"
-            label={busy ? (dl!.stage === 'trails' ? 'Downloading trails…' : `Saving topo map… ${Math.round(dl!.percent)}%`) : 'Download this area'}
+            label={
+              busy
+                ? dl!.stage === 'trails'
+                  ? 'Downloading trails…'
+                  : `Saving topo map… ${Math.round(dl!.percent)}%`
+                : 'Download this area'
+            }
             tone="soft"
             disabled={busy}
             onPress={() => trail.downloadHere(radius)}
             style={{ marginTop: 6 }}
           />
           {busy && dl!.stage === 'map' ? (
-            <Text style={[styles.note, { color: t.muted, marginTop: 6 }]}>Trails are ready to use. The map keeps saving in the background.</Text>
+            <Text style={[styles.note, { color: t.muted, marginTop: 6 }]}>
+              Trails are ready to use. The map keeps saving in the background.
+            </Text>
           ) : null}
           {trail.downloadError ? (
             <Text style={[styles.note, { color: t.danger, marginTop: 6 }]}>Couldn’t download: {trail.downloadError}</Text>
@@ -144,8 +179,8 @@ export function TrailSheet({ onClose, trail, here }: { onClose: () => void; trai
         </>
       )}
       <Text style={[styles.fine, { color: t.muted }]}>
-        Trail data © OpenStreetMap contributors. Trails can be closed, washed out or wrong on the map: check signs and
-        conditions, and carry a paper map where it matters.
+        Trail data © OpenStreetMap contributors. Trails can be closed, washed out or wrong on the map: check signs and conditions, and carry
+        a paper map where it matters.
       </Text>
     </Sheet>
   );

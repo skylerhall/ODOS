@@ -149,7 +149,13 @@ export function IconButton(props: { icon: IconName; label: string; onPress: () =
 }
 
 /** Quick action in the bottom bar: a tinted icon well with a short label under it. */
-export function ActionTile(props: { icon: IconName; label: string; onPress: () => void; hint?: string; tone?: 'accent' | 'amber' | 'brand' }) {
+export function ActionTile(props: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  hint?: string;
+  tone?: 'accent' | 'amber' | 'brand';
+}) {
   const t = useTheme();
   const amber = props.tone === 'amber';
   const brand = props.tone === 'brand';
@@ -317,7 +323,10 @@ export function Sheet(props: { visible: boolean; title: string; onClose: () => v
           style={[
             styles.sheet,
             elevate(t, 3),
-            side && [styles.sheetSide, { width: Math.min(440, Math.round(screenW * 0.48)), marginLeft: insets.left + 8, marginTop: insets.top + 8 }],
+            side && [
+              styles.sheetSide,
+              { width: Math.min(440, Math.round(screenW * 0.48)), marginLeft: insets.left + 8, marginTop: insets.top + 8 },
+            ],
             {
               maxHeight,
               backgroundColor: t.bg,

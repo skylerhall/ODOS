@@ -87,7 +87,11 @@ export function FuelLevelSlider({ value, onChange, ev }: { value: number; onChan
             key={i}
             style={[
               styles.label,
-              { left: THUMB / 2 + (i / EIGHTHS) * width - 24, color: i === value ? t.text : t.muted, fontFamily: font(i === value ? '700' : '500') },
+              {
+                left: THUMB / 2 + (i / EIGHTHS) * width - 24,
+                color: i === value ? t.text : t.muted,
+                fontFamily: font(i === value ? '700' : '500'),
+              },
             ]}
           >
             {gaugeLabel(i, ev)}

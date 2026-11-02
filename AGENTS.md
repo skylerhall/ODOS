@@ -37,7 +37,7 @@ ODOS is a single-screen GPS app (no Expo Router): a full-screen Mapbox map with 
 - `src/ui/` — components and sheets. All touch targets are at least 56 px and labeled for screen readers.
 - Tunable rules (50-mile buffer, 15–30 mile gas window, 2-hour rest limit, lane weights) live in `src/config.ts`.
 
-Before declaring a change done, run `npm test`, `npm run typecheck` and `npm run lint`.
+Before declaring a change done, run `npm test`, `npm run typecheck`, `npm run lint` and `npm run format:check`.
 
 Sheets that load data are mounted only while open (fresh state each time) and load through
 `src/ui/useAsync.ts`; follow that pattern rather than calling setState at the top of an effect.

@@ -25,14 +25,16 @@ export function FuelSheet(props: {
   const range = props.rangeAt(value);
 
   return (
-    <Sheet visible title={props.firstTime ? (ev ? 'How charged is it?' : 'How full is your tank?') : ev ? 'Battery level' : 'Fuel level'} onClose={props.onClose}>
+    <Sheet
+      visible
+      title={props.firstTime ? (ev ? 'How charged is it?' : 'How full is your tank?') : ev ? 'Battery level' : 'Fuel level'}
+      onClose={props.onClose}
+    >
       <Text style={{ color: t.muted, fontSize: 15, fontFamily: font('500') }}>
         {props.vehicle.make} {props.vehicle.model}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 6, marginBottom: 8 }} accessible={false}>
-        <Text style={{ color: t.text, fontSize: 40, fontFamily: font('800'), letterSpacing: -1, ...NUMERIC }}>
-          {gaugeLabel(value, ev)}
-        </Text>
+        <Text style={{ color: t.text, fontSize: 40, fontFamily: font('800'), letterSpacing: -1, ...NUMERIC }}>{gaugeLabel(value, ev)}</Text>
         <Text style={{ color: t.muted, fontSize: 18, fontFamily: font('600'), marginLeft: 8 }}>{ev ? 'charged' : 'tank'}</Text>
         <Text style={{ color: value <= 2 ? t.amber : t.text, fontSize: 18, fontFamily: font('700'), marginLeft: 'auto', ...NUMERIC }}>
           ≈ {miles(range)}

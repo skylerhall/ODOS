@@ -59,7 +59,10 @@ describe('shortcuts', () => {
 
   it('repairs saved lists', () => {
     expect(normalizeShortcuts(null)).toEqual(DEFAULT_SHORTCUTS);
-    const saved = [{ key: 'custom:gym', label: 'Gym', icon: 'star' as const, place: null }, { ...DEFAULT_SHORTCUTS[1], place: place('w') }];
+    const saved = [
+      { key: 'custom:gym', label: 'Gym', icon: 'star' as const, place: null },
+      { ...DEFAULT_SHORTCUTS[1], place: place('w') },
+    ];
     const fixed = normalizeShortcuts(saved);
     expect(fixed.map((s) => s.key)).toEqual(['home', 'work', 'custom:gym']);
     expect(fixed[1].place?.id).toBe('w');

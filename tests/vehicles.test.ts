@@ -22,7 +22,11 @@ describe('vehicle search with model years', () => {
     expect(all.some((v) => v.years == null)).toBe(true);
   });
   it('parses year, engine size and nicknames', () => {
-    expect(parseVehicleQuery('2007 Chevy Silverado 5.3L')).toEqual({ year: 2007, words: ['chevrolet', 'silverado', '5.3l'], displacement: '5.3' });
+    expect(parseVehicleQuery('2007 Chevy Silverado 5.3L')).toEqual({
+      year: 2007,
+      words: ['chevrolet', 'silverado', '5.3l'],
+      displacement: '5.3',
+    });
   });
   it('borrows the tank size from the right generation', () => {
     expect(closestRegistryMatch('TOYOTA', 'Tundra 4WD', 4.7, 2007)?.years).toBe('2000-2009');
@@ -34,8 +38,19 @@ describe('EPA exact search', () => {
 
   it('walks make → model → engine and keeps the typed engine size', async () => {
     const menus: Record<string, unknown> = {
-      make: { menuItem: [{ text: 'Ford', value: 'Ford' }, { text: 'Toyota', value: 'Toyota' }] },
-      model: { menuItem: [{ text: 'Camry', value: 'Camry' }, { text: 'Tundra 2WD', value: 'Tundra 2WD' }, { text: 'Tundra 4WD', value: 'Tundra 4WD' }] },
+      make: {
+        menuItem: [
+          { text: 'Ford', value: 'Ford' },
+          { text: 'Toyota', value: 'Toyota' },
+        ],
+      },
+      model: {
+        menuItem: [
+          { text: 'Camry', value: 'Camry' },
+          { text: 'Tundra 2WD', value: 'Tundra 2WD' },
+          { text: 'Tundra 4WD', value: 'Tundra 4WD' },
+        ],
+      },
       options: {
         menuItem: [
           { text: 'Auto 5-spd, 8 cyl, 4.7 L', value: '23001' },
