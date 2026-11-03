@@ -1,6 +1,17 @@
-# ODOS
+<p align="center">
+  <img src="docs/images/logo.png" width="128" height="128" alt="ODOS app icon">
+</p>
 
-_ὁδός (odós): Greek for "road" or "way."_
+<h1 align="center">ODOS</h1>
+
+<p align="center"><em>ὁδός (odós): Greek for "road" or "way."</em></p>
+
+<p align="center">
+  <a href="https://github.com/skylerhall/odos/releases/latest"><b>Download for Android</b></a> ·
+  <a href="#build-your-own">Build your own</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="LICENSE">MIT License</a>
+</p>
 
 A road-trip GPS app for Android, built with Expo and Mapbox. It gives turn-by-turn directions with
 live traffic, and it also handles the things other map apps leave to you: when to get gas, where to
@@ -109,7 +120,7 @@ src/
   ui/             Map, banner, panels, sheets
 tests/            npm test (tests/live hits real APIs: npm run test:live)
 plugins/          Expo config plugins (release signing)
-scripts/          APK build, CI helpers, position-marker artwork
+scripts/          APK build, CI helpers, position-marker and repo artwork
 ```
 
 Checks before a pull request: `npm test`, `npm run typecheck`, `npm run lint` and `npm run format:check`
